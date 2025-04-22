@@ -31,7 +31,21 @@ const createEnseignantWithUser = async (req, res) => {
 
 const getAllEnseignants = async (req, res) => {
     try {
-        const enseignants = await Enseignant.find();
+        const { search } = req.query;
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { nom: { $regex: search, $options: 'i' } },
+                    { prenom: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { matiere: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        const enseignants = await Enseignant.find(query);
         res.json({
             success: true,
             enseignants

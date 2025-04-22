@@ -14,14 +14,10 @@ function ResetPassword() {
 
     useEffect(() => {
         if (!token) {
-            handleError('Token invalide');
-            navigate('/login');
+            handleError('Lien de réinitialisation invalide');
+            navigate('/forgot-password');
         }
     }, [token, navigate]);
-
-    const validatePassword = (pwd) => {
-        return pwd.length >= 8; // Exige au moins 8 caractères
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,19 +27,19 @@ function ResetPassword() {
             setLoading(false);
             return handleError('Tous les champs sont requis');
         }
-        if (!validatePassword(password)) {
+
+        if (password.length < 8) {
             setLoading(false);
             return handleError('Le mot de passe doit contenir au moins 8 caractères');
         }
+
         if (password !== confirmPassword) {
             setLoading(false);
             return handleError('Les mots de passe ne correspondent pas');
         }
 
         try {
-            const url = `http://localhost:5000/api/auth/reset-password`;
-            console.log('Envoi de la requête à :', url, 'avec token et mot de passe');
-            const response = await fetch(url, {
+            const response = await fetch('http://localhost:5000/api/auth/reset-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,18 +47,15 @@ function ResetPassword() {
                 body: JSON.stringify({ token, password }),
             });
 
-            console.log('Statut de la réponse :', response.status);
             const result = await response.json();
-            console.log('Réponse du serveur :', result);
 
             if (response.ok && result.success) {
                 handleSuccess('Mot de passe réinitialisé avec succès');
                 setTimeout(() => navigate('/login'), 2000);
             } else {
-                handleError(result.message || 'Erreur lors de la réinitialisation');
+                handleError(result.message || 'Lien expiré ou invalide');
             }
         } catch (err) {
-            console.error('Erreur détaillée :', err);
             handleError('Erreur réseau ou serveur indisponible');
         } finally {
             setLoading(false);

@@ -67,18 +67,32 @@ const createEleveWithUser = async (req, res) => {
 };
 
 // Get all students
+// Update getAllEleves function
 const getAllEleves = async (req, res) => {
     try {
-        const eleves = await Eleve.find().populate('userId', 'email role');
+        const { search } = req.query;
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { nom: { $regex: search, $options: 'i' } },
+                    { prenom: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { classe: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        const eleves = await Eleve.find(query).populate('userId', 'email role');
         res.json({ 
-            success: true, 
-            eleves: eleves // Make sure we're sending the eleves array
+            success: true,
+            eleves 
         });
     } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: error.message,
-            eleves: [] // Send empty array on error
+        res.status(500).json({
+            success: false,
+            message: error.message
         });
     }
 };

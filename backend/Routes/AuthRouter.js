@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../Models/User');
-const { registerUser, loginUser } = require('../Controllers/AuthController');
+const { registerUser, loginUser, forgotPassword, resetPassword } = require('../Controllers/AuthController');
 const verifyToken = require('../Middlewares/Auth');
 const VerificationCode = require('../Models/VerificationCode');
 const nodemailer = require('nodemailer');
+const ResetToken = require('../Models/ResetToken');
 
 // Configure nodemailer
 const transporterVerification = nodemailer.createTransport({
@@ -107,62 +108,8 @@ router.post('/verify-code', async (req, res) => {
 });
 
 // Route pour demander la réinitialisation du mot de passe
-router.post('/forgot-password', async (req, res) => {
-    console.log('Requête reçue pour /forgot-password avec email :', req.body.email);
-    const { email } = req.body;
-
-    if (!email) {
-        console.log('Email manquant dans la requête');
-        return res.status(400).json({ success: false, message: 'Email requis' });
-    }
-
-    // Vérifier si l’utilisateur existe
-    console.log('Vérification si l’utilisateur existe pour email :', email);
-    const user = await User.findOne({ email });
-    if (!user) {
-        console.log('Utilisateur non trouvé pour email :', email);
-        return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
-    }
-
-    const resetToken = Math.random().toString(36).slice(2);
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
-    console.log('Token de réinitialisation généré :', resetToken);
-
-    // Stocker le token dans la base de données
-    try {
-        console.log('Sauvegarde du token de réinitialisation dans la base de données...');
-        const tokenDoc = new ResetToken({
-            email,
-            token: resetToken,
-            expiresAt: new Date(Date.now() + 3600 * 1000) // Expire dans 1 heure
-        });
-        await tokenDoc.save();
-        console.log('Token de réinitialisation sauvegardé avec succès');
-    } catch (error) {
-        console.error('Erreur lors de la sauvegarde du token de réinitialisation :', error);
-        return res.status(500).json({ success: false, message: 'Erreur lors de la génération du token' });
-    }
-
-    const mailOptions = {
-        from: process.env.EMAIL_USER_2, // tahayessine07@gmail.com
-        to: email,
-        subject: 'Réinitialisation de votre mot de passe',
-        text: `Cliquez sur ce lien pour réinitialiser votre mot de passe : ${resetLink}`,
-    };
-
-    console.log('EMAIL_USER_2:', process.env.EMAIL_USER_2);
-    console.log('EMAIL_PASS_2:', process.env.EMAIL_PASS_2);
-
-    try {
-        console.log('Envoi de l’email à :', email, 'via :', process.env.EMAIL_USER_2);
-        await transporterReset.sendMail(mailOptions);
-        console.log(`Lien envoyé à : ${email}`);
-        res.status(200).json({ success: true, message: 'Un lien de réinitialisation a été envoyé à votre email' });
-    } catch (error) {
-        console.error('Erreur lors de l’envoi de l’email :', error);
-        return res.status(500).json({ success: false, message: 'Erreur lors de l’envoi de l’email' });
-    }
-});
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Route pour réinitialiser le mot de passe
 router.post('/reset-password', async (req, res) => {

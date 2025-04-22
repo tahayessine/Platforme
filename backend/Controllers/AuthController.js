@@ -2,6 +2,18 @@ const User = require('../Models/User');
 const jwt = require('jsonwebtoken');
 const { registerValidation, loginValidation } = require('../Middlewares/AuthValidation');
 const VerificationCode = require('../Models/VerificationCode');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const ResetToken = require('../Models/ResetToken');
+
+// Configure nodemailer for password reset
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // Enregistrer un utilisateur
 const registerUser = async (req, res) => {
@@ -124,4 +136,102 @@ const loginUser = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser };
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Aucun compte associé à cet email'
+            });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        await ResetToken.create({
+            email: user.email,
+            token: resetToken,
+            expiresAt: new Date(Date.now() + 3600000)
+        });
+
+        const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: 'Réinitialisation de mot de passe',
+            html: `
+                <h1>Réinitialisation de votre mot de passe</h1>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
+                <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
+                <a href="${resetUrl}">Réinitialiser mon mot de passe</a>
+                <p>Ce lien expire dans 1 heure.</p>
+                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.json({
+            success: true,
+            message: 'Email de réinitialisation envoyé'
+        });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erreur lors de l\'envoi de l\'email'
+        });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        const resetToken = await ResetToken.findOne({
+            token,
+            expiresAt: { $gt: new Date() }
+        });
+
+        if (!resetToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token invalide ou expiré'
+            });
+        }
+
+        const user = await User.findOne({ email: resetToken.email });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Utilisateur non trouvé'
+            });
+        }
+
+        // Update password
+        user.password = password;
+        await user.save();
+
+        // Delete used token
+        await ResetToken.deleteOne({ _id: resetToken._id });
+
+        res.json({
+            success: true,
+            message: 'Mot de passe réinitialisé avec succès'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la réinitialisation du mot de passe'
+        });
+    }
+};
+
+module.exports = {
+    registerUser,
+    loginUser,
+    forgotPassword,
+    resetPassword
+};

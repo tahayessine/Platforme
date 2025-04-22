@@ -28,8 +28,11 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import './style.css';
+import CircularProgress from '@mui/material/CircularProgress';
 
 function GererEleve() {
+  // Add search state
+  const [searchQuery, setSearchQuery] = useState('');
   const [eleves, setEleves] = useState([]);  // Initialize as empty array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -253,192 +256,391 @@ function GererEleve() {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // Add search handler
+  const handleSearch = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  // Add filtered students logic
+  const filteredEleves = eleves.filter(eleve => 
+    eleve.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    eleve.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    eleve.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    eleve.classe.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="gerer-eleve-container">
-      <div className="header-container">
-        <div>
-          <h1 className="header-title">Gestion des Élèves</h1>
-          <p className="header-subtitle">
-            Gérez les informations des élèves, ajoutez de nouveaux élèves ou modifiez les données existantes.
-          </p>
-        </div>
-        <Button 
-          variant="contained" 
+    <Box
+      sx={{
+        flexGrow: 1,
+        width: 'calc(100% - 230px)',
+        marginLeft: '230px',
+        padding: '32px',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#f8fafc',
+        minHeight: '100vh',
+        paddingTop: '100px'
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          padding: { xs: '20px', md: '32px' },
+          background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+          marginBottom: '32px'
+        }}
+      >
+        <Typography 
+          variant="h4"
+          sx={{
+            fontFamily: '"Poppins", sans-serif',
+            fontWeight: 700,
+            fontSize: { xs: '1.75rem', md: '2.25rem' },
+            color: '#1e293b',
+            marginBottom: '24px',
+            textAlign: 'center'
+          }}
+        >
+          Gestion des Élèves
+        </Typography>
+        <Button
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAddEleve}
-          className="new-student-button"
+          sx={{
+            background: 'linear-gradient(135deg, #4f46e5, #3730a3)',
+            color: '#fff',
+            fontWeight: 600,
+            padding: '12px 24px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
+            transition: 'all 0.3s ease',
+            textTransform: 'none',
+            fontSize: '1rem',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #3730a3, #312e81)',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(79, 70, 229, 0.4)'
+            }
+          }}
         >
           Nouvel Élève
         </Button>
-      </div>
+      </Box>
+
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 2, 
+        mb: 3,
+        mt: 2,
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Rechercher un élève..."
+          value={searchQuery}
+          onChange={handleSearch}
+          sx={{
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '12px',
+              '&:hover fieldset': {
+                borderColor: '#4f46e5',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#4f46e5',
+              }
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ color: '#6b7280', mr: 1 }}>
+                🔍
+              </Box>
+            )
+          }}
+        />
+      </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Typography>Chargement...</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+          <CircularProgress sx={{ color: '#4f46e5' }} />
         </Box>
       ) : error ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          {error}
+        </Alert>
       ) : (
-        <Box sx={{ p: 3 }}>
-          <TableContainer component={Paper} sx={{ mt: 2, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <Table>
-              <TableHead sx={{ backgroundColor: '#f8fafc' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Nom</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Prénom</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Date de naissance</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Classe</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+            overflow: 'hidden'
+          }}
+        >
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Nom</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Prénom</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Date de naissance</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Classe</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredEleves.map((eleve) => (
+                <TableRow 
+                  key={eleve._id}
+                  sx={{ 
+                    '&:hover': { 
+                      backgroundColor: '#f1f5f9',
+                      transition: 'background-color 0.3s ease'
+                    }
+                  }}
+                >
+                  <TableCell sx={{ color: '#334155' }}>{eleve.nom}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{eleve.prenom}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{new Date(eleve.dateNaissance).toLocaleDateString()}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{eleve.classe}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{eleve.email}</TableCell>
+                  <TableCell>
+                    <IconButton 
+                      onClick={() => handleEditEleve(eleve)}
+                      sx={{ 
+                        color: '#4f46e5',
+                        '&:hover': { 
+                          backgroundColor: 'rgba(79, 70, 229, 0.1)'
+                        }
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => handleDeleteClick(eleve)}
+                      sx={{ 
+                        color: '#ef4444',
+                        '&:hover': { 
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                        }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {eleves.map((eleve) => (
-                  <TableRow key={eleve._id} hover>
-                    <TableCell>{eleve.nom}</TableCell>
-                    <TableCell>{eleve.prenom}</TableCell>
-                    <TableCell>{new Date(eleve.dateNaissance).toLocaleDateString()}</TableCell>
-                    <TableCell>{eleve.classe}</TableCell>
-                    <TableCell>{eleve.email}</TableCell>
-                    <TableCell>
-                      <IconButton 
-                        color="primary" 
-                        onClick={() => handleEditEleve(eleve)}
-                        sx={{ mr: 1 }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton 
-                        color="error" 
-                        onClick={() => handleDeleteClick(eleve)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Add no results message */}
+      {!loading && !error && filteredEleves.length === 0 && (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 4,
+          color: '#6b7280'
+        }}>
+          Aucun élève trouvé pour cette recherche
         </Box>
       )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{selectedEleve ? 'Modifier un élève' : 'Ajouter un nouvel élève'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            name="nom"
-            label="Nom"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={formData.nom}
-            onChange={handleChange}
-            sx={{ mb: 2, mt: 2 }}
-          />
-          <TextField
-            margin="dense"
-            name="prenom"
-            label="Prénom"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={formData.prenom}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
-            <DatePicker
-              label="Date de naissance"
-              value={formData.dateNaissance}
-              onChange={handleDateChange}
-              renderInput={(params) => <TextField {...params} fullWidth sx={{ mb: 2 }} />}
-              sx={{ width: '100%', mb: 2 }}
-            />
-          </LocalizationProvider>
-          <TextField
-            margin="dense"
-            name="classe"
-            label="Classe"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={formData.classe}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          {!selectedEleve && (
-            <>
-              <TextField
-                margin="dense"
-                name="email"
-                label="Email"
-                type="email"
-                fullWidth
-                variant="outlined"
-                value={formData.email}
-                onChange={handleChange}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                margin="dense"
-                name="password"
-                label="Mot de passe"
-                type="password"
-                fullWidth
-                variant="outlined"
-                value={formData.password}
-                onChange={handleChange}
-                sx={{ mb: 2 }}
-              />
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenDialog(false)} color="primary">
-            Annuler
-          </Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {selectedEleve ? 'Modifier' : 'Ajouter'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
+      {/* Update Dialog styles */}
+      {/* Dialog components */}
+            <Dialog 
+              open={openDialog} 
+              onClose={() => setOpenDialog(false)}
+              maxWidth="sm"
+              fullWidth
+              PaperProps={{
+                sx: {
+                  borderRadius: '16px',
+                  padding: '16px'
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                color: '#1e293b'
+              }}>
+                {selectedEleve ? 'Modifier un élève' : 'Ajouter un nouvel élève'}
+              </DialogTitle>
+              <DialogContent>
+                <TextField
+                  margin="dense"
+                  name="nom"
+                  label="Nom"
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  value={formData.nom}
+                  onChange={handleChange}
+                  sx={{ mb: 2, mt: 2 }}
+                />
+                <TextField
+                  margin="dense"
+                  name="prenom"
+                  label="Prénom"
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  value={formData.prenom}
+                  onChange={handleChange}
+                  sx={{ mb: 2 }}
+                />
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+                  <DatePicker
+                    label="Date de naissance"
+                    value={formData.dateNaissance}
+                    onChange={handleDateChange}
+                    renderInput={(params) => <TextField {...params} fullWidth sx={{ mb: 2 }} />}
+                    sx={{ width: '100%', mb: 2 }}
+                  />
+                </LocalizationProvider>
+                <TextField
+                  margin="dense"
+                  name="classe"
+                  label="Classe"
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  value={formData.classe}
+                  onChange={handleChange}
+                  sx={{ mb: 2 }}
+                />
+                {!selectedEleve && (
+                  <>
+                    <TextField
+                      margin="dense"
+                      name="email"
+                      label="Email"
+                      type="email"
+                      fullWidth
+                      variant="outlined"
+                      value={formData.email}
+                      onChange={handleChange}
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      margin="dense"
+                      name="password"
+                      label="Mot de passe"
+                      type="password"
+                      fullWidth
+                      variant="outlined"
+                      value={formData.password}
+                      onChange={handleChange}
+                      sx={{ mb: 2 }}
+                    />
+                  </>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ p: 2 }}>
+                <Button 
+                  onClick={() => setOpenDialog(false)}
+                  sx={{ 
+                    color: '#6b7280',
+                    '&:hover': { backgroundColor: '#f1f5f9' }
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  variant="contained"
+                  sx={{
+                    background: 'linear-gradient(135deg, #4f46e5, #3730a3)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #3730a3, #312e81)',
+                    }
+                  }}
+                >
+                  {selectedEleve ? 'Modifier' : 'Ajouter'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+      
       {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={() => setOpenDeleteDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            padding: '16px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
+          Confirmer la suppression
+        </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ color: '#334155' }}>
             Êtes-vous sûr de vouloir supprimer l'élève {selectedEleve?.prenom} {selectedEleve?.nom} ?
             Cette action est irréversible.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)}
+            sx={{ 
+              color: '#6b7280',
+              '&:hover': { backgroundColor: '#f1f5f9' }
+            }}
+          >
             Annuler
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <Button 
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            sx={{
+              backgroundColor: '#ef4444',
+              '&:hover': {
+                backgroundColor: '#dc2626',
+              }
+            }}
+          >
             Supprimer
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
+      {/* Snackbar */}
       <Snackbar 
         open={snackbar.open} 
         autoHideDuration={6000} 
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ 
+            width: '100%',
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
+          }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </div>
+    </Box>
   );
 }
 

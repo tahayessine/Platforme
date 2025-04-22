@@ -9,32 +9,22 @@ function ForgotPassword() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Add the handleChange function
     const handleChange = (e) => {
         setEmail(e.target.value);
-    };
-
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        if (!email) {
-            setLoading(false);
-            return handleError('Veuillez entrer votre email');
-        }
-        if (!validateEmail(email)) {
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             setLoading(false);
             return handleError('Veuillez entrer un email valide');
         }
 
         try {
-            const url = `http://localhost:5000/api/auth/forgot-password`;
-            console.log('Envoi de la requête à :', url, 'avec email :', email);
-            const response = await fetch(url, {
+            const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -42,18 +32,15 @@ function ForgotPassword() {
                 body: JSON.stringify({ email }),
             });
 
-            console.log('Statut de la réponse :', response.status);
             const result = await response.json();
-            console.log('Réponse du serveur :', result);
 
             if (response.ok && result.success) {
-                handleSuccess('Un lien de réinitialisation a été envoyé à votre email');
-                setTimeout(() => navigate('/login'), 2000);
+                handleSuccess('Un email de réinitialisation a été envoyé. Veuillez vérifier votre boîte de réception.');
+                setTimeout(() => navigate('/login'), 3000);
             } else {
                 handleError(result.message || 'Une erreur est survenue');
             }
         } catch (err) {
-            console.error('Erreur détaillée :', err);
             handleError('Erreur réseau ou serveur indisponible');
         } finally {
             setLoading(false);

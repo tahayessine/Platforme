@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -29,6 +29,7 @@ import AddIcon from '@mui/icons-material/Add';
 import './style.css';
 
 function GererEnseignant() {
+  const [searchQuery, setSearchQuery] = useState('');
   const [enseignants, setEnseignants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,7 +47,6 @@ function GererEnseignant() {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-  // Add this function here
   const handleEditClick = (enseignant) => {
     setSelectedEnseignant(enseignant);
     setFormData({
@@ -55,13 +55,11 @@ function GererEnseignant() {
       dateNaissance: new Date(enseignant.dateNaissance),
       matiere: enseignant.matiere,
       email: enseignant.email,
-      password: '' // Password field is empty when editing
+      password: ''
     });
     setOpenDialog(true);
   };
 
-  // Fetch teachers
-  // Wrap fetchEnseignants in useCallback
   const fetchEnseignants = useCallback(async () => {
     try {
       setLoading(true);
@@ -85,15 +83,12 @@ function GererEnseignant() {
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array since it doesn't depend on any props or state
+  }, [API_URL]);
 
-  // Update useEffect
   useEffect(() => {
     fetchEnseignants();
   }, [fetchEnseignants]);
 
-  // Handle form submission
-  // Add these handler functions
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -103,20 +98,12 @@ function GererEnseignant() {
     setFormData(prev => ({ ...prev, dateNaissance: date }));
   };
 
-  // Update useEffect to include fetchEnseignants in dependencies
-  useEffect(() => {
-    fetchEnseignants();
-  }, [fetchEnseignants]); // Add dependency
-
-  // Add snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
 
-  // Add snackbar handler
-  // Update handleSnackbar to use the defined state
   const handleSnackbar = (message, severity = 'success') => {
     setSnackbar({
       open: true,
@@ -125,7 +112,6 @@ function GererEnseignant() {
     });
   };
 
-  // Update handleSubmit to use snackbar
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -134,7 +120,6 @@ function GererEnseignant() {
       const headers = { 'Authorization': `Bearer ${token}` };
 
       if (selectedEnseignant) {
-        // Update existing teacher
         await axios.put(
           `${API_URL}/api/enseignants/${selectedEnseignant._id}`,
           {
@@ -146,13 +131,8 @@ function GererEnseignant() {
           },
           { headers }
         );
-        setSnackbar({
-          open: true,
-          message: 'Enseignant modifié avec succès',
-          severity: 'success'
-        });
+        handleSnackbar('Enseignant modifié avec succès');
       } else {
-        // Create new teacher
         const userResponse = await axios.post(
           `${API_URL}/api/auth/register`,
           {
@@ -178,6 +158,7 @@ function GererEnseignant() {
             },
             { headers }
           );
+          handleSnackbar('Enseignant ajouté avec succès');
         }
       }
       
@@ -185,17 +166,12 @@ function GererEnseignant() {
       fetchEnseignants();
     } catch (error) {
       console.error('Error submitting form:', error);
-      setSnackbar({
-        open: true,
-        message: error.response?.data?.message || 'Erreur lors de l\'opération',
-        severity: 'error'
-      });
+      handleSnackbar(error.response?.data?.message || 'Erreur lors de l\'opération', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Update handleDelete to use snackbar
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -216,9 +192,20 @@ function GererEnseignant() {
     }
   };
 
-  useEffect(() => {
-    fetchEnseignants();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredEnseignants = useMemo(() => {
+    if (!searchQuery) return enseignants;
+    const lowerQuery = searchQuery.toLowerCase();
+    return enseignants.filter(enseignant =>
+      enseignant.nom.toLowerCase().includes(lowerQuery) ||
+      enseignant.prenom.toLowerCase().includes(lowerQuery) ||
+      enseignant.matiere.toLowerCase().includes(lowerQuery) ||
+      enseignant.email.toLowerCase().includes(lowerQuery)
+    );
+  }, [enseignants, searchQuery]);
 
   return (
     <Box
@@ -226,29 +213,22 @@ function GererEnseignant() {
         flexGrow: 1,
         width: 'calc(100% - 230px)',
         marginLeft: '230px',
-        padding: 0,
+        padding: '32px',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: '#f8fafc',
         minHeight: '100vh',
-        paddingTop: '80px',
-        paddingBottom: '32px'
+        paddingTop: '100px'
       }}
     >
       <Box
         sx={{
           width: '100%',
-          padding: { xs: '16px', md: '24px 40px' },
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '20px',
-          background: 'linear-gradient(135deg, #ffffff, #f1f5f9)',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
-          boxShadow: '0 8px 32px rgba(148, 163, 184, 0.1)',
-          borderRadius: '0 0 20px 20px',
-          transition: 'all 0.3s ease'
+          padding: { xs: '20px', md: '32px' },
+          background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+          marginBottom: '32px'
         }}
       >
         <Typography 
@@ -256,10 +236,10 @@ function GererEnseignant() {
           sx={{
             fontFamily: '"Poppins", sans-serif',
             fontWeight: 700,
-            fontSize: { xs: '1.5rem', md: '2rem' },
+            fontSize: { xs: '1.75rem', md: '2.25rem' },
             color: '#1e293b',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2
+            marginBottom: '24px',
+            textAlign: 'center'
           }}
         >
           Gestion des Enseignants
@@ -269,63 +249,135 @@ function GererEnseignant() {
           startIcon={<AddIcon />}
           onClick={() => setOpenDialog(true)}
           sx={{
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: 'linear-gradient(135deg, #4f46e5, #3730a3)',
             color: '#fff',
             fontWeight: 600,
-            padding: '10px 20px',
+            padding: '12px 24px',
             borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
             transition: 'all 0.3s ease',
             textTransform: 'none',
-            fontSize: '0.9rem',
-            fontFamily: '"Inter", sans-serif',
+            fontSize: '1rem',
             '&:hover': {
-              background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-              boxShadow: '0 12px 32px rgba(99, 102, 241, 0.4)',
-              transform: 'translateY(-2px)'
-            },
-            '&:active': {
-              transform: 'translateY(0)'
+              background: 'linear-gradient(135deg, #3730a3, #312e81)',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(79, 70, 229, 0.4)'
             }
           }}
         >
-          Nouvel Enseignant
+          Ajouter un Enseignant
         </Button>
       </Box>
 
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 2, 
+        mb: 3,
+        mt: 2,
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Rechercher un enseignant..."
+          value={searchQuery}
+          onChange={handleSearch}
+          sx={{
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '12px',
+              '&:hover fieldset': {
+                borderColor: '#4f46e5',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#4f46e5',
+              }
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ color: '#6b7280', mr: 1 }}>
+                🔍
+              </Box>
+            )
+          }}
+        />
+      </Box>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+          <CircularProgress sx={{ color: '#4f46e5' }} />
         </Box>
       ) : error ? (
-        <Alert severity="error">{error}</Alert>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          {error}
+        </Alert>
       ) : (
-        <TableContainer component={Paper} sx={{ mt: 3 }}>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+            overflow: 'hidden'
+          }}
+        >
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>Nom</TableCell>
-                <TableCell>Prénom</TableCell>
-                <TableCell>Matière</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Actions</TableCell>
+              <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Nom</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Prénom</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Matière</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {enseignants.map((enseignant) => (
-                <TableRow key={enseignant._id}>
-                  <TableCell>{enseignant.nom}</TableCell>
-                  <TableCell>{enseignant.prenom}</TableCell>
-                  <TableCell>{enseignant.matiere}</TableCell>
-                  <TableCell>{enseignant.email}</TableCell>
+              {filteredEnseignants.map((enseignant) => (
+                <TableRow 
+                  key={enseignant._id}
+                  sx={{ 
+                    '&:hover': { 
+                      backgroundColor: '#f1f5f9',
+                      transition: 'background-color 0.3s ease'
+                    }
+                  }}
+                >
+                  <TableCell sx={{ color: '#334155' }}>{enseignant.nom}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{enseignant.prenom}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{enseignant.matiere}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{enseignant.email}</TableCell>
                   <TableCell>
-                    <IconButton onClick={() => handleEditClick(enseignant)}>
+                    <IconButton 
+                      onClick={() => handleEditClick(enseignant)}
+                      sx={{ 
+                        color: '#4f46e5',
+                        '&:hover': { 
+                          backgroundColor: 'rgba(79, 70, 229, 0.1)'
+                        }
+                      }}
+                    >
                       <EditIcon />
                     </IconButton>
-                    <IconButton onClick={() => {
-                      setSelectedEnseignant(enseignant);
-                      setOpenDeleteDialog(true);
-                    }}>
+                    <IconButton 
+                      onClick={() => {
+                        setSelectedEnseignant(enseignant);
+                        setOpenDeleteDialog(true);
+                      }}
+                      sx={{ 
+                        color: '#ef4444',
+                        '&:hover': { 
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                        }
+                      }}
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -336,19 +388,37 @@ function GererEnseignant() {
         </TableContainer>
       )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => {
-        setOpenDialog(false);
-        setSelectedEnseignant(null);
-        setFormData({
-          nom: '',
-          prenom: '',
-          dateNaissance: null,
-          matiere: '',
-          email: '',
-          password: ''
-        });
-      }}>
+      {!loading && !error && filteredEnseignants.length === 0 && (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 4,
+          color: '#6b7280'
+        }}>
+          Aucun enseignant trouvé pour cette recherche
+        </Box>
+      )}
+
+      <Dialog 
+        open={openDialog} 
+        onClose={() => {
+          setOpenDialog(false);
+          setSelectedEnseignant(null);
+          setFormData({
+            nom: '',
+            prenom: '',
+            dateNaissance: null,
+            matiere: '',
+            email: '',
+            password: ''
+          });
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            padding: '16px'
+          }
+        }}
+      >
         <DialogTitle>
           {selectedEnseignant ? 'Modifier l\'enseignant' : 'Ajouter un enseignant'}
         </DialogTitle>
@@ -398,7 +468,7 @@ function GererEnseignant() {
               onChange={handleChange}
               margin="normal"
               required
-              disabled={selectedEnseignant} // Disable email field when editing
+              disabled={selectedEnseignant}
             />
             {!selectedEnseignant && (
               <TextField
@@ -422,7 +492,6 @@ function GererEnseignant() {
         </form>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirmer la suppression</DialogTitle>
         <DialogContent>
@@ -436,7 +505,6 @@ function GererEnseignant() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
