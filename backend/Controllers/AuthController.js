@@ -26,9 +26,8 @@ const registerUser = async (req, res) => {
             });
         }
 
-        // Skip verification code check if request is from admin
-        if (!req.body.isAdmin) {
-            // Verify the code for non-admin registrations
+        // Verify the code for non-admin registrations
+        if (req.body.role === 'eleve') {
             const verificationCode = await VerificationCode.findOne({ 
                 email: req.body.email,
                 code: req.body.code
@@ -68,10 +67,15 @@ const registerUser = async (req, res) => {
             success: true,
             message: 'Utilisateur créé avec succès',
             token,
-            userId: savedUser._id
+            user: {
+                id: savedUser._id,
+                name: savedUser.name,
+                email: savedUser.email,
+                role: savedUser.role
+            }
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
             message: error.message
         });

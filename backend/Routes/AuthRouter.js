@@ -271,4 +271,14 @@ router.post('/refresh-token', async (req, res) => {
     }
 });
 
+// Add this new route for user deletion in case of failed student profile creation
+router.delete('/user/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 module.exports = router;

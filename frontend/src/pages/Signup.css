@@ -142,22 +142,50 @@
 }
 
 /* Section droite */
+/* Update the right section styles */
 .right-section {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Changed from center to flex-start */
     background: #fff;
     padding: 50px;
     position: relative;
     z-index: 2;
+    overflow-y: auto; /* Add scrolling */
+    max-height: 100vh; /* Ensure it takes full viewport height */
 }
 
 .right-section .signup-form {
     width: 100%;
-    max-width: 400px; /* Augmenté de 340px à 400px pour plus d'espace */
+    max-width: 400px;
     position: relative;
     z-index: 3;
+    padding: 20px 0; /* Add some padding top and bottom */
+}
+
+/* Add smooth scrolling to the container */
+.container {
+    display: flex;
+    min-height: 100vh; /* Changed from height to min-height */
+    width: 100vw;
+    background: linear-gradient(135deg, #fff 50%, rgba(255, 215, 0, 0.1));
+    overflow: hidden;
+    animation: fadeIn 1s ease-in-out;
+    position: relative;
+}
+
+/* Update media query for better mobile responsiveness */
+@media (max-width: 768px) {
+    .right-section {
+        overflow-y: auto;
+        max-height: none; /* Remove max-height on mobile */
+        padding: 30px 20px; /* Adjust padding */
+    }
+
+    .container {
+        overflow-y: auto; /* Allow scrolling on mobile */
+    }
 }
 
 .right-section .signup-title {
@@ -391,4 +419,25 @@
         margin-left: 0;
         width: 100%; /* Prend toute la largeur sur mobile */
     }
+}
+
+
+select.input-field {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+}
+
+select.input-field:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+select.input-field option {
+    padding: 10px;
 }

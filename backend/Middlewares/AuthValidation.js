@@ -5,12 +5,8 @@ const registerValidation = (data) => {
         name: Joi.string().required().min(3),
         email: Joi.string().required().email(),
         password: Joi.string().required().min(6),
-        code: Joi.string().when('isAdmin', {
-            is: true,
-            then: Joi.optional(),
-            otherwise: Joi.required()
-        }),
         role: Joi.string().valid('admin', 'eleve', 'enseignant').default('eleve'),
+        code: Joi.string().allow('').optional(), // Make code optional
         isAdmin: Joi.boolean().default(false)
     });
 

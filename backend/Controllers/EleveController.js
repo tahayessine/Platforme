@@ -6,62 +6,51 @@ const mongoose = require('mongoose');
 // Create student with user account
 const createEleveWithUser = async (req, res) => {
     try {
-        const {
-            nom,
-            prenom,
-            email,
-            userId
-        } = req.body;
+        const { nom, prenom, dateNaissance, classe, email, password, ville } = req.body;
 
-        // Validate essential fields
-        if (!email || !userId) {
+        // Validate required fields
+        if (!nom || !prenom || !email || !password || !ville) {
             return res.status(400).json({
                 success: false,
-                message: 'Email et userId sont requis'
+                message: 'Tous les champs sont requis'
             });
         }
 
-        // Check if student already exists
-        const existingEleve = await Eleve.findOne({ 
-            $or: [
-                { userId: userId },
-                { email: email }
-            ]
+        // First, create the user
+        const user = new User({
+            name: `${prenom} ${nom}`,
+            email,
+            password,
+            role: 'eleve'
         });
 
-        if (existingEleve) {
-            return res.status(400).json({
-                success: false,
-                message: 'Un profil élève existe déjà pour cet utilisateur ou cet email'
-            });
-        }
+        const savedUser = await user.save();
 
-        // Create student record
+        // Then create the student profile
         const eleve = new Eleve({
-            nom: nom || '',
-            prenom: prenom || '',
-            dateNaissance: new Date(),
-            classe: 'Non assignée',
-            email: email,
-            userId: userId
+            nom,
+            prenom,
+            dateNaissance,
+            classe: classe || 'Non assignée',
+            email,
+            ville,
+            userId: savedUser._id
         });
 
         const savedEleve = await eleve.save();
-        
-        // Update user role
-        await User.findByIdAndUpdate(userId, { role: 'eleve' });
 
         res.status(201).json({
             success: true,
-            message: 'Profil élève créé avec succès',
+            message: 'Élève créé avec succès',
             eleve: savedEleve
         });
+
     } catch (error) {
+        // If there's an error, handle user cleanup if needed
         console.error('Error creating student:', error);
-        res.status(500).json({
+        res.status(400).json({
             success: false,
-            message: 'Erreur lors de la création du profil élève',
-            error: error.message
+            message: error.message || 'Erreur lors de la création de l\'élève'
         });
     }
 };

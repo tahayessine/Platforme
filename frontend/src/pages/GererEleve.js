@@ -18,7 +18,8 @@ import {
   TextField,
   IconButton,
   Snackbar,
-  Alert
+  Alert,
+  MenuItem  // Add this import
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -29,6 +30,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import './style.css';
 import CircularProgress from '@mui/material/CircularProgress';
+
+const tunisianCities = [
+  'Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 
+  'Gabès', 'Ariana', 'Gafsa', 'Monastir', 'Ben Arous',
+  'Kasserine', 'Médenine', 'Nabeul', 'Tataouine', 'Béja',
+  'Kef', 'Mahdia', 'Sidi Bouzid', 'Jendouba', 'Tozeur',
+  'Manouba', 'Siliana', 'Zaghouan', 'Kebili'
+];
 
 function GererEleve() {
   // Add search state
@@ -45,7 +54,8 @@ function GererEleve() {
     dateNaissance: null,
     classe: '',
     email: '',
-    password: ''
+    password: '',
+    ville: '' // Add ville field
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -115,7 +125,8 @@ function GererEleve() {
       dateNaissance: null,
       classe: '',
       email: '',
-      password: ''
+      password: '',
+      ville: '' // Add empty ville field
     });
     setOpenDialog(true);
   };
@@ -129,6 +140,7 @@ function GererEleve() {
       dateNaissance: new Date(eleve.dateNaissance),
       classe: eleve.classe,
       email: eleve.email,
+      ville: eleve.ville || '', // Add ville field
       password: '' // Password field is empty when editing
     });
     setOpenDialog(true);
@@ -141,57 +153,59 @@ function GererEleve() {
   };
 
   // Submit form for adding/editing student
+  // Update handleSubmit to use the correct fields
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+        // Validate required fields
+        if (!formData.nom || !formData.prenom || !formData.email || !formData.password || !formData.ville || !formData.classe || !formData.dateNaissance) {
+            setSnackbar({
+                open: true,
+                message: 'Veuillez remplir tous les champs obligatoires',
+                severity: 'error'
+            });
+            return;
+        }
+
         setLoading(true);
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
 
         if (selectedEleve) {
-            await axios.put(
-                `${API_URL}/api/eleves/${selectedEleve._id}`,
+            // Update existing student logic remains the same
+            await axios.put(`${API_URL}/api/eleves/${selectedEleve._id}`, {
+                nom: formData.nom,
+                prenom: formData.prenom,
+                dateNaissance: formData.dateNaissance,
+                classe: formData.classe,
+                email: formData.email,
+                ville: formData.ville
+            }, { headers });
+        } else {
+            // Create new student with user in a single request
+            const response = await axios.post(
+                `${API_URL}/api/eleves/create-with-user`,
                 {
                     nom: formData.nom,
                     prenom: formData.prenom,
                     dateNaissance: formData.dateNaissance,
                     classe: formData.classe,
-                    email: formData.email
-                },
-                { headers }
-            );
-            setSnackbar({
-                open: true,
-                message: 'Élève modifié avec succès',
-                severity: 'success'
-            });
-        } else {
-            const userResponse = await axios.post(
-                `${API_URL}/api/auth/register`,
-                {
-                    name: `${formData.prenom} ${formData.nom}`,
                     email: formData.email,
                     password: formData.password,
-                    role: 'eleve',
-                    isAdmin: true
+                    ville: formData.ville
                 },
                 { headers }
             );
 
-            if (userResponse.data.success) {
-                await axios.post(
-                    `${API_URL}/api/eleves/create-with-user`,
-                    {
-                        nom: formData.nom,
-                        prenom: formData.prenom,
-                        dateNaissance: formData.dateNaissance,
-                        classe: formData.classe,
-                        email: formData.email,
-                        userId: userResponse.data.userId
-                    },
-                    { headers }
-                );
+            if (!response.data.success) {
+                throw new Error(response.data.message);
             }
+
+            setSnackbar({
+                open: true,
+                message: 'Élève ajouté avec succès',
+                severity: 'success'
+            });
         }
         
         setOpenDialog(false);
@@ -399,6 +413,7 @@ function GererEleve() {
                 <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Date de naissance</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Classe</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Ville</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -418,6 +433,7 @@ function GererEleve() {
                   <TableCell sx={{ color: '#334155' }}>{new Date(eleve.dateNaissance).toLocaleDateString()}</TableCell>
                   <TableCell sx={{ color: '#334155' }}>{eleve.classe}</TableCell>
                   <TableCell sx={{ color: '#334155' }}>{eleve.email}</TableCell>
+                  <TableCell sx={{ color: '#334155' }}>{eleve.ville}</TableCell>
                   <TableCell>
                     <IconButton 
                       onClick={() => handleEditEleve(eleve)}
@@ -550,6 +566,27 @@ function GererEleve() {
                     />
                   </>
                 )}
+                {/* TextField for ville selection */}
+                <TextField
+                  select
+                  margin="dense"
+                  name="ville"
+                  label="Ville"
+                  fullWidth
+                  variant="outlined"
+                  value={formData.ville}
+                  onChange={handleChange}
+                  sx={{ mb: 2 }}
+                >
+                  <MenuItem value="">
+                    <em>Sélectionner une ville</em>
+                  </MenuItem>
+                  {tunisianCities.map((city) => (
+                    <MenuItem key={city} value={city}>
+                      {city}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </DialogContent>
               <DialogActions sx={{ p: 2 }}>
                 <Button 

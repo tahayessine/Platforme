@@ -6,12 +6,21 @@ import './Signup.css';
 import { FaFacebookF, FaTwitter, FaGoogle, FaInstagram } from 'react-icons/fa';
 import axios from 'axios';
 
+const tunisianCities = [
+  'Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 
+  'Gabès', 'Ariana', 'Gafsa', 'Monastir', 'Ben Arous',
+  'Kasserine', 'Médenine', 'Nabeul', 'Tataouine', 'Béja',
+  'Kef', 'Mahdia', 'Sidi Bouzid', 'Jendouba', 'Tozeur',
+  'Manouba', 'Siliana', 'Zaghouan', 'Kebili'
+];
+
 function Signup() {
     const [signupInfo, setSignupInfo] = useState({
         name: '',
         email: '',
         password: '',
-        code: '', // Ajout du champ pour le code
+        code: '',
+        ville: '' // Add ville field
     });
     const [isLoading, setIsLoading] = useState(false);
     const [isCodeSent, setIsCodeSent] = useState(false); // État pour savoir si le code a été envoyé
@@ -112,51 +121,66 @@ function Signup() {
         }
     };
 
-    const handleSignup = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const { name, email, password, code } = signupInfo;
+        
+        // Validate all required fields
+        if (!signupInfo.name || !signupInfo.email || !signupInfo.password || !signupInfo.ville) {
+            toast.error('Veuillez remplir tous les champs');
+            return;
+        }
     
-        if (!name || !email || !password || !code) {
-            toast.error('Tous les champs sont requis.');
+        if (!isCodeVerified) {
+            toast.error('Veuillez vérifier votre code email');
             return;
         }
     
         setIsLoading(true);
         try {
-            // First step: Register the user
+            // First register the user
             const registerResponse = await axios.post('http://localhost:5000/api/auth/register', {
-                name,
-                email,
-                password,
-                code,
+                name: signupInfo.name,
+                email: signupInfo.email,
+                password: signupInfo.password,
+                code: signupInfo.code,
                 role: 'eleve'
             });
     
-            const { userId } = registerResponse.data;
+            if (registerResponse.data.success) {
+                // Then create the student profile
+                const nameParts = signupInfo.name.split(' ');
+                const eleveData = {
+                    nom: nameParts.length > 1 ? nameParts.slice(1).join(' ') : nameParts[0],
+                    prenom: nameParts[0],
+                    email: signupInfo.email,
+                    ville: signupInfo.ville,
+                    userId: registerResponse.data.user.id
+                };
     
-            // Split name into firstName and lastName
-            const nameParts = name.split(' ');
-            const prenom = nameParts[0];
-            const nom = nameParts.slice(1).join(' ') || prenom;
+                try {
+                    const eleveResponse = await axios.post('http://localhost:5000/api/eleves/create-with-user', eleveData);
     
-            // Second step: Create student profile
-            await axios.post('http://localhost:5000/api/eleves/create-with-user', {
-                nom,
-                prenom,
-                email,
-                userId
-            });
-    
-            toast.success("Inscription réussie ! Redirection vers la connexion...");
-            setTimeout(() => navigate('/login'), 2000);
+                    if (eleveResponse.data.success) {
+                        toast.success('Inscription réussie !');
+                        setTimeout(() => {
+                            navigate('/login');
+                        }, 2000);
+                    }
+                } catch (eleveError) {
+                    // If student profile creation fails, delete the user account
+                    await axios.delete(`http://localhost:5000/api/auth/user/${registerResponse.data.user.id}`);
+                    throw new Error(eleveError.response?.data?.message || 'Erreur lors de la création du profil élève');
+                }
+            }
         } catch (error) {
-            console.error("Erreur lors de l'inscription :", error.response?.data || error);
-            toast.error(error.response?.data?.message || "Une erreur est survenue lors de l'inscription");
+            console.error('Erreur lors de l\'inscription:', error);
+            toast.error(error.response?.data?.message || 'Erreur lors de l\'inscription');
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Add this in your JSX form before the password field
     return (
         <div className="container">
             <div className="left-section">
@@ -168,7 +192,7 @@ function Signup() {
                 <div className="dynamic-illustration"></div>
             </div>
             <div className="right-section">
-                <form onSubmit={handleSignup} className="signup-form">
+                <form onSubmit={handleSubmit} className="signup-form">
                     <h1 className="signup-title">Inscription</h1>
                     <div className="input-group">
                         <label htmlFor="name">Nom</label>
@@ -250,6 +274,21 @@ function Signup() {
                             aria-label="Mot de passe"
                             disabled={isLoading}
                         />
+                    </div>
+                    <div className="input-group">
+                        <label htmlFor="ville">Ville</label>
+                        <select
+                            name="ville"
+                            value={signupInfo.ville}
+                            onChange={handleChange}
+                            className="input-field"
+                            required
+                        >
+                            <option value="">Sélectionnez votre ville</option>
+                            {tunisianCities.map(city => (
+                                <option key={city} value={city}>{city}</option>
+                            ))}
+                        </select>
                     </div>
                     <button type="submit" className="signup-btn" disabled={isLoading || !isCodeVerified}>
                         {isLoading ? 'Inscription...' : 'S’inscrire'}
