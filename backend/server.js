@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRouter = require('./Routes/AuthRouter');
 const routesEleve = require('./Routes/RoutesEleve');
+const routesEnseignant = require('./Routes/RoutesEnseignant');
 
 const app = express();
 
@@ -29,6 +30,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/eleves', routesEleve);
+app.use('/api/enseignants', routesEnseignant);  // This line should be present
 
 // Error handling middleware
 app.use((err, req, res, next) => {

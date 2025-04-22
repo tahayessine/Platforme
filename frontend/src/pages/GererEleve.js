@@ -138,56 +138,31 @@ function GererEleve() {
   };
 
   // Submit form for adding/editing student
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        
-        if (!token) {
-            setSnackbar({
-                open: true,
-                message: 'Vous n\'êtes pas authentifié',
-                severity: 'error'
-            });
-            return;
-        }
+        const headers = { 'Authorization': `Bearer ${token}` };
 
-        // Form validation
-        if (!formData.nom || !formData.prenom || !formData.email || (!selectedEleve && !formData.password)) {
-            setSnackbar({
-                open: true,
-                message: 'Veuillez remplir tous les champs obligatoires',
-                severity: 'error'
-            });
-            setLoading(false);
-            return;
-        }
-        
-        const headers = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        };
-        
         if (selectedEleve) {
-            // Update existing student
             await axios.put(
-                `${API_URL}/api/eleves/${selectedEleve._id}`, 
+                `${API_URL}/api/eleves/${selectedEleve._id}`,
                 {
                     nom: formData.nom,
                     prenom: formData.prenom,
                     dateNaissance: formData.dateNaissance,
-                    classe: formData.classe
+                    classe: formData.classe,
+                    email: formData.email
                 },
                 { headers }
             );
-            
             setSnackbar({
                 open: true,
                 message: 'Élève modifié avec succès',
                 severity: 'success'
             });
         } else {
-            // Create new user with admin flag
             const userResponse = await axios.post(
                 `${API_URL}/api/auth/register`,
                 {
@@ -195,14 +170,13 @@ function GererEleve() {
                     email: formData.email,
                     password: formData.password,
                     role: 'eleve',
-                    isAdmin: true // This flag tells the backend to skip verification
+                    isAdmin: true
                 },
                 { headers }
             );
 
             if (userResponse.data.success) {
-                // Create student profile
-                const eleveResponse = await axios.post(
+                await axios.post(
                     `${API_URL}/api/eleves/create-with-user`,
                     {
                         nom: formData.nom,
@@ -214,26 +188,16 @@ function GererEleve() {
                     },
                     { headers }
                 );
-
-                if (eleveResponse.data.success) {
-                    setSnackbar({
-                        open: true,
-                        message: 'Élève ajouté avec succès',
-                        severity: 'success'
-                    });
-                    setOpenDialog(false);
-                    fetchEleves();
-                }
             }
         }
         
         setOpenDialog(false);
         fetchEleves();
-    } catch (err) {
-        console.error('Error submitting form:', err);
+    } catch (error) {
+        console.error('Error submitting form:', error);
         setSnackbar({
             open: true,
-            message: err.response?.data?.message || 'Erreur lors de l\'ajout de l\'élève',
+            message: error.response?.data?.message || 'Erreur lors de l\'opération',
             severity: 'error'
         });
     } finally {

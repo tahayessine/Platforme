@@ -99,17 +99,44 @@ const getEleveById = async (req, res) => {
 // Update student
 const updateEleve = async (req, res) => {
     try {
+        const { id } = req.params;
+        const { nom, prenom, dateNaissance, classe, email } = req.body;
+
+        // Update student
         const updatedEleve = await Eleve.findByIdAndUpdate(
-            req.params.id,
-            req.body,
+            id,
+            { nom, prenom, dateNaissance, classe, email },
             { new: true }
         );
+
         if (!updatedEleve) {
-            return res.status(404).json({ success: false, message: 'Student not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Élève non trouvé'
+            });
         }
-        res.json({ success: true, eleve: updatedEleve });
+
+        // Update corresponding user
+        await User.findByIdAndUpdate(
+            updatedEleve.userId,
+            { 
+                name: `${prenom} ${nom}`,
+                email: email 
+            }
+        );
+
+        res.json({
+            success: true,
+            message: 'Élève mis à jour avec succès',
+            eleve: updatedEleve
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Error updating student:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la mise à jour de l\'élève',
+            error: error.message
+        });
     }
 };
 

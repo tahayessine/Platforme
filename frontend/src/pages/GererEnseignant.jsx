@@ -1,793 +1,453 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Avatar,
-  IconButton,
-  Tooltip,
-  Typography,
-  Pagination,
-  TextField,
-  InputAdornment,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Grid,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  LinearProgress,
-  Fade,
-  Zoom,
-  Alert,
-  Switch,
-} from "@mui/material";
-import { Visibility, Delete, Search, Add } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { fr } from 'date-fns/locale';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import './style.css';
 
-// Styles alignés avec GererElevePage
-const styles = {
-  content: (themeMode) => ({
-    flexGrow: 1,
-    width: "calc(100% - 230px)",
-    marginLeft: "230px",
-    padding: "20px 30px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    background: themeMode === "dark" ? "#2a1b3d" : "#f0f4f8",
-    minHeight: "100vh",
-    pt: "80px",
-    transition: "all 0.5s ease-in-out",
-  }),
-  header: (themeMode) => ({
-    width: "100%",
-    padding: { xs: "15px", md: "20px 30px" },
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "15px",
-    background: themeMode === "dark" ? "#2a1b3d" : "#ffffff",
-    borderRadius: "15px",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-    mb: "20px",
-  }),
-  titleContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  title: (themeMode) => ({
-    fontFamily: "'Montserrat', sans-serif",
-    fontWeight: 800,
-    fontSize: { xs: "1.8rem", md: "2.2rem" },
-    color: themeMode === "dark" ? "#ffffff" : "#2a1b3d",
-    transition: "transform 0.4s ease",
-    "&:hover": {
-      transform: "scale(1.05)",
-    },
-  }),
-  teacherCount: {
-    fontFamily: "'Montserrat', sans-serif",
-    fontSize: "0.9rem",
-    color: "#fff",
-    background: "#6a4bff",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    boxShadow: "0 2px 6px rgba(90, 61, 255, 0.3)",
-  },
-  searchField: (themeMode) => ({
-    width: { xs: "100%", sm: "250px", md: "300px" },
-    "& .MuiOutlinedInput-root": {
-      background: themeMode === "dark" ? "#2a1b3d" : "#fff",
-      borderRadius: "10px",
-      "& fieldset": {
-        borderColor: "#6a4bff",
-        borderWidth: "1px",
-      },
-      "&:hover fieldset": {
-        borderColor: "#8c5eff",
-      },
-      "&.Mui-focused fieldset": {
-        borderColor: "#6a4bff",
-        boxShadow: "0 0 8px rgba(90, 61, 255, 0.4)",
-      },
-    },
-    "& .MuiInputBase-input": {
-      color: themeMode === "dark" ? "#fff" : "#333",
-      fontSize: "1rem",
-    },
-  }),
-  addButton: {
-    background: "#6a4bff",
-    color: "#fff",
-    padding: "8px 20px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 12px rgba(90, 61, 255, 0.4)",
-    transition: "all 0.4s ease",
-    fontFamily: "'Montserrat', sans-serif",
-    fontWeight: 600,
-    fontSize: "1rem",
-    textTransform: "uppercase",
-    "&:hover": {
-      background: "#8c5eff",
-      boxShadow: "0 6px 15px rgba(90, 61, 255, 0.6)",
-      transform: "translateY(-2px)",
-    },
-  },
-  tableContainer: (themeMode) => ({
-    width: "100%",
-    background: themeMode === "dark" ? "#2a1b3d" : "#fff",
-    borderRadius: "10px",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-    mt: "15px",
-  }),
-  tableHeader: (themeMode) => ({
-    background: themeMode === "dark" ? "#35254a" : "#f5f7ff",
-    "& th": {
-      fontFamily: "'Montserrat', sans-serif",
-      fontWeight: 700,
-      color: themeMode === "dark" ? "#fff" : "#2a1b3d",
-      borderBottom: "2px solid #6a4bff",
-      padding: "12px",
-      fontSize: "0.9rem",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-    },
-  }),
-  tableRow: (themeMode) => ({
-    transition: "all 0.3s ease",
-    "&:hover": {
-      backgroundColor:
-        themeMode === "dark" ? "rgba(90, 61, 255, 0.2)" : "rgba(90, 61, 255, 0.1)",
-      transform: "translateY(-2px)",
-    },
-    "& td": {
-      padding: "12px",
-      borderBottom: "1px solid rgba(90, 61, 255, 0.15)",
-      fontSize: "0.9rem",
-      fontFamily: "'Montserrat', sans-serif",
-      color: themeMode === "dark" ? "#fff" : "#333",
-    },
-  }),
-  avatar: {
-    width: 40,
-    height: 40,
-    border: "2px solid #6a4bff",
-    borderRadius: "50%",
-    transition: "all 0.3s ease",
-    "&:hover": {
-      transform: "scale(1.1)",
-    },
-  },
-  actionButtons: { display: "flex", gap: "10px" },
-  viewButton: {
-    color: "#6a4bff",
-    "&:hover": {
-      backgroundColor: "rgba(90, 61, 255, 0.1)",
-    },
-  },
-  deleteButton: {
-    color: "#ff3d3d",
-    "&:hover": {
-      backgroundColor: "rgba(255, 61, 61, 0.1)",
-    },
-  },
-  pagination: {
-    mt: "20px",
-    mb: "20px",
-    "& .MuiPaginationItem-root": {
-      fontFamily: "'Montserrat', sans-serif",
-      transition: "all 0.3s ease",
-      "&:hover": {
-        backgroundColor: "rgba(90, 61, 255, 0.2)",
-      },
-      "&.Mui-selected": {
-        background: "#6a4bff",
-        color: "#fff",
-      },
-    },
-  },
-  listContainer: (themeMode) => ({
-    width: "100%",
-    mt: "15px",
-    background: themeMode === "dark" ? "#2a1b3d" : "#fff",
-    borderRadius: "10px",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-    p: "15px",
-  }),
-  textFieldStyle: (themeMode) => ({
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "10px",
-      background: themeMode === "dark" ? "#2a1b3d" : "#fafafa",
-      "& fieldset": {
-        borderColor: "#6a4bff",
-        borderWidth: "1px",
-      },
-      "&:hover fieldset": {
-        borderColor: "#8c5eff",
-      },
-      "&.Mui-focused fieldset": {
-        borderColor: "#6a4bff",
-        boxShadow: "0 0 8px rgba(90, 61, 255, 0.4)",
-      },
-    },
-    "& .MuiInputLabel-root": {
-      fontFamily: "'Montserrat', sans-serif",
-      color: "#6a4bff",
-      fontSize: "0.9rem",
-    },
-  }),
-  progressBar: {
-    width: "100%",
-    mt: "10px",
-    "& .MuiLinearProgress-bar": {
-      background: "#6a4bff",
-    },
-  },
-};
-
-const GererEnseignantPage = () => {
+function GererEnseignant() {
   const [enseignants, setEnseignants] = useState([]);
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState("table");
-  const [sortBy, setSortBy] = useState("name");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
-  const [themeMode, setThemeMode] = useState("light");
-  const navigate = useNavigate();
-
   const [openDialog, setOpenDialog] = useState(false);
-  const [enseignant, setEnseignant] = useState({
-    nom: "",
-    prenom: "",
-    matiere: "",
-    dateEmbauche: "",
-    email: "",
-    password: "",
-    photo: null,
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedEnseignant, setSelectedEnseignant] = useState(null);
+  const [formData, setFormData] = useState({
+    nom: '',
+    prenom: '',
+    dateNaissance: null,
+    matiere: '',
+    email: '',
+    password: ''
   });
-  const [errors, setErrors] = useState({});
 
-  // Données initiales des enseignants (sans le champ status)
-  useEffect(() => {
-    const initialEnseignants = [
-      {
-        id: "1",
-        nom: "Durand",
-        prenom: "Paul",
-        matiere: "Mathématiques",
-        dateEmbauche: "2010-09-01",
-        email: "paul.durand@example.com",
-        created: "01/09/2010",
-        role: "Enseignant",
-        photo: "https://i.pravatar.cc/40?img=1",
-      },
-      {
-        id: "2",
-        nom: "Leclerc",
-        prenom: "Sophie",
-        matiere: "Physique",
-        dateEmbauche: "2015-02-10",
-        email: "sophie.leclerc@example.com",
-        created: "10/02/2015",
-        role: "Enseignant",
-        photo: "https://i.pravatar.cc/40?img=2",
-      },
-    ];
-    setEnseignants(
-      initialEnseignants.map((ens) => ({
-        ...ens,
-        name: `${ens.nom} ${ens.prenom}`,
-      }))
-    );
-  }, []);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
+  // Add this function here
+  const handleEditClick = (enseignant) => {
+    setSelectedEnseignant(enseignant);
+    setFormData({
+      nom: enseignant.nom,
+      prenom: enseignant.prenom,
+      dateNaissance: new Date(enseignant.dateNaissance),
+      matiere: enseignant.matiere,
+      email: enseignant.email,
+      password: '' // Password field is empty when editing
+    });
+    setOpenDialog(true);
+  };
 
-  const handleDelete = useCallback(async (id) => {
-    setLoading(true);
+  // Fetch teachers
+  // Wrap fetchEnseignants in useCallback
+  const fetchEnseignants = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:5000/enseignants/${id}`, {
-        method: "DELETE",
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('Session expirée, veuillez vous reconnecter');
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/api/enseignants`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) {
-        setEnseignants((prev) => prev.filter((ens) => ens.id !== id));
-        setDeleteDialog({ open: false, id: null });
-      } else {
-        setError("Erreur lors de la suppression de l'enseignant.");
+
+      if (response.data.success) {
+        setEnseignants(response.data.enseignants);
       }
     } catch (error) {
-      setError("Erreur réseau lors de la suppression.");
+      setError('Erreur lors du chargement des enseignants');
+      console.error(error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Empty dependency array since it doesn't depend on any props or state
 
-  const handleViewClick = useCallback(
-    (id) => navigate(`/enseignant/${id}`),
-    [navigate]
-  );
+  // Update useEffect
+  useEffect(() => {
+    fetchEnseignants();
+  }, [fetchEnseignants]);
 
-  const handleSort = (field) => setSortBy(field);
-
-  // Filtrage sans le statut
-  const filteredEnseignants = enseignants
-    .filter(
-      (ens) =>
-        ens.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ens.matiere.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ens.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "created") return new Date(a.created) - new Date(b.created);
-      if (sortBy === "email") return a.email.localeCompare(b.email);
-      return 0;
-    });
-
-  const paginatedEnseignants = filteredEnseignants.slice((page - 1) * 5, page * 5);
-
-  const validateForm = () => {
-    let tempErrors = {};
-    if (!enseignant.nom) tempErrors.nom = "Le nom est requis";
-    if (!enseignant.prenom) tempErrors.prenom = "Le prénom est requis";
-    if (!enseignant.matiere) tempErrors.matiere = "La matière est requise";
-    if (!enseignant.dateEmbauche) tempErrors.dateEmbauche = "La date est requise";
-    if (!enseignant.email) tempErrors.email = "L'email est requis";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(enseignant.email))
-      tempErrors.email = "Email invalide";
-    if (!enseignant.password) tempErrors.password = "Le mot de passe est requis";
-    setErrors(tempErrors);
-    return Object.keys(tempErrors).length === 0;
-  };
-
+  // Handle form submission
+  // Add these handler functions
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEnseignant((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotoChange = (e) => {
-    setEnseignant((prev) => ({ ...prev, photo: e.target.files[0] }));
+  const handleDateChange = (date) => {
+    setFormData(prev => ({ ...prev, dateNaissance: date }));
   };
 
+  // Update useEffect to include fetchEnseignants in dependencies
+  useEffect(() => {
+    fetchEnseignants();
+  }, [fetchEnseignants]); // Add dependency
+
+  // Add snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  // Add snackbar handler
+  // Update handleSnackbar to use the defined state
+  const handleSnackbar = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // Update handleSubmit to use snackbar
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    try {
       setLoading(true);
-      const formData = new FormData();
-      Object.keys(enseignant).forEach((key) => formData.append(key, enseignant[key]));
-      try {
-        const response = await fetch("http://localhost:5000/enseignants", {
-          method: "POST",
-          body: formData,
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      if (selectedEnseignant) {
+        // Update existing teacher
+        await axios.put(
+          `${API_URL}/api/enseignants/${selectedEnseignant._id}`,
+          {
+            nom: formData.nom,
+            prenom: formData.prenom,
+            dateNaissance: formData.dateNaissance,
+            matiere: formData.matiere,
+            email: formData.email
+          },
+          { headers }
+        );
+        setSnackbar({
+          open: true,
+          message: 'Enseignant modifié avec succès',
+          severity: 'success'
         });
-        if (response.ok) {
-          const newEnseignant = await response.json();
-          setEnseignants((prev) => [
-            ...prev,
+      } else {
+        // Create new teacher
+        const userResponse = await axios.post(
+          `${API_URL}/api/auth/register`,
+          {
+            name: `${formData.prenom} ${formData.nom}`,
+            email: formData.email,
+            password: formData.password,
+            role: 'enseignant',
+            isAdmin: true
+          },
+          { headers }
+        );
+
+        if (userResponse.data.success) {
+          await axios.post(
+            `${API_URL}/api/enseignants/create-with-user`,
             {
-              ...newEnseignant,
-              id: newEnseignant._id,
-              name: `${newEnseignant.nom} ${newEnseignant.prenom}`,
-              role: "Enseignant",
-              created: new Date(newEnseignant.createdAt).toLocaleDateString(),
-              email: newEnseignant.email,
-              matiere: newEnseignant.matiere,
-              dateEmbauche: newEnseignant.dateEmbauche,
+              nom: formData.nom,
+              prenom: formData.prenom,
+              dateNaissance: formData.dateNaissance,
+              matiere: formData.matiere,
+              email: formData.email,
+              userId: userResponse.data.userId
             },
-          ]);
-          setOpenDialog(false);
-          setEnseignant({
-            nom: "",
-            prenom: "",
-            matiere: "",
-            dateEmbauche: "",
-            email: "",
-            password: "",
-            photo: null,
-          });
-          setErrors({});
-        } else {
-          setError("Erreur lors de l'enregistrement de l'enseignant.");
+            { headers }
+          );
         }
-      } catch (error) {
-        setError("Erreur réseau lors de l'enregistrement.");
-      } finally {
-        setLoading(false);
       }
+      
+      setOpenDialog(false);
+      fetchEnseignants();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Erreur lors de l\'opération',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Update handleDelete to use snackbar
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+
+      await axios.delete(`${API_URL}/api/enseignants/${selectedEnseignant._id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      setOpenDeleteDialog(false);
+      fetchEnseignants();
+      handleSnackbar('Enseignant supprimé avec succès');
+    } catch (error) {
+      console.error(error);
+      handleSnackbar('Erreur lors de la suppression', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEnseignants();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <Box sx={styles.content(themeMode)} aria-label="Gestion des enseignants">
-      {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+    <Box
+      sx={{
+        flexGrow: 1,
+        width: 'calc(100% - 230px)',
+        marginLeft: '230px',
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#f8fafc',
+        minHeight: '100vh',
+        paddingTop: '80px',
+        paddingBottom: '32px'
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          padding: { xs: '16px', md: '24px 40px' },
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px',
+          background: 'linear-gradient(135deg, #ffffff, #f1f5f9)',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+          boxShadow: '0 8px 32px rgba(148, 163, 184, 0.1)',
+          borderRadius: '0 0 20px 20px',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <Typography 
+          variant="h4"
+          sx={{
+            fontFamily: '"Poppins", sans-serif',
+            fontWeight: 700,
+            fontSize: { xs: '1.5rem', md: '2rem' },
+            color: '#1e293b',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2
+          }}
+        >
+          Gestion des Enseignants
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenDialog(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            color: '#fff',
+            fontWeight: 600,
+            padding: '10px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.3s ease',
+            textTransform: 'none',
+            fontSize: '0.9rem',
+            fontFamily: '"Inter", sans-serif',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+              boxShadow: '0 12px 32px rgba(99, 102, 241, 0.4)',
+              transform: 'translateY(-2px)'
+            },
+            '&:active': {
+              transform: 'translateY(0)'
+            }
+          }}
+        >
+          Nouvel Enseignant
+        </Button>
+      </Box>
 
-      <Fade in={!loading}>
-        <Box sx={styles.header(themeMode)}>
-          <Box sx={styles.titleContainer}>
-            <Typography variant="h4" sx={styles.title(themeMode)} aria-label="Titre de la page">
-              Gérer les Enseignants
-            </Typography>
-            <Typography variant="body2" sx={styles.teacherCount}>
-              {filteredEnseignants.length} Enseignants
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap="10px" flexWrap="wrap">
-            <Button
-              variant="contained"
-              sx={styles.addButton}
-              onClick={() => setOpenDialog(true)}
-              startIcon={<Add />}
-              aria-label="Ajouter un nouvel enseignant"
-            >
-              Ajouter
-            </Button>
-            <TextField
-              sx={styles.searchField(themeMode)}
-              variant="outlined"
-              placeholder="Rechercher un enseignant..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: "#6a4bff" }} />
-                  </InputAdornment>
-                ),
-              }}
-              aria-label="Champ de recherche"
-            />
-            <Button
-              variant="outlined"
-              onClick={() => setViewMode(viewMode === "table" ? "list" : "table")}
-              sx={{
-                borderColor: "#6a4bff",
-                color: "#6a4bff",
-                fontFamily: "'Montserrat', sans-serif",
-                borderRadius: "10px",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                textTransform: "uppercase",
-                padding: "8px 16px",
-              }}
-            >
-              {viewMode === "table" ? "Vue Liste" : "Vue Tableau"}
-            </Button>
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ fontFamily: "'Montserrat', sans-serif", color: "#6a4bff" }}>
-                Trier par
-              </InputLabel>
-              <Select
-                value={sortBy}
-                label="Trier par"
-                onChange={(e) => handleSort(e.target.value)}
-                sx={styles.textFieldStyle(themeMode)}
-              >
-                <MenuItem value="name">Nom</MenuItem>
-                <MenuItem value="created">Date de création</MenuItem>
-                <MenuItem value="email">Email</MenuItem>
-              </Select>
-            </FormControl>
-            <Box display="flex" alignItems="center">
-              <Typography sx={{ fontFamily: "'Montserrat', sans-serif", color: "#6a4bff", fontSize: "0.9rem" }}>
-                Mode Sombre
-              </Typography>
-              <Switch
-                checked={themeMode === "dark"}
-                onChange={() => setThemeMode(themeMode === "light" ? "dark" : "light")}
-                color="primary"
-              />
-            </Box>
-          </Box>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
         </Box>
-      </Fade>
-
-      {loading && <LinearProgress sx={styles.progressBar} />}
-
-      {!loading && viewMode === "table" && (
-        <Zoom in={!loading}>
-          <TableContainer component={Paper} sx={styles.tableContainer(themeMode)}>
-            <Table aria-label="Tableau des enseignants">
-              <TableHead sx={styles.tableHeader(themeMode)}>
-                <TableRow>
-                  <TableCell>Enseignant</TableCell>
-                  <TableCell>Matière</TableCell>
-                  <TableCell>Date d'embauche</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Actions</TableCell>
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : (
+        <TableContainer component={Paper} sx={{ mt: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nom</TableCell>
+                <TableCell>Prénom</TableCell>
+                <TableCell>Matière</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {enseignants.map((enseignant) => (
+                <TableRow key={enseignant._id}>
+                  <TableCell>{enseignant.nom}</TableCell>
+                  <TableCell>{enseignant.prenom}</TableCell>
+                  <TableCell>{enseignant.matiere}</TableCell>
+                  <TableCell>{enseignant.email}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleEditClick(enseignant)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton onClick={() => {
+                      setSelectedEnseignant(enseignant);
+                      setOpenDeleteDialog(true);
+                    }}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedEnseignants.map((ens) => (
-                  <TableRow key={ens.id} sx={styles.tableRow(themeMode)} aria-label={`Ligne pour ${ens.nom} ${ens.prenom}`}>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap="10px">
-                        <Avatar
-                          sx={styles.avatar}
-                          src={ens.photo}
-                          alt={`${ens.nom} ${ens.prenom}'s avatar`}
-                        />
-                        <Box>
-                          <Typography variant="body1">{ens.name}</Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {ens.role}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{ens.matiere}</TableCell>
-                    <TableCell>{ens.dateEmbauche}</TableCell>
-                    <TableCell>{ens.email}</TableCell>
-                    <TableCell>
-                      <Box sx={styles.actionButtons}>
-                        <Tooltip title="Voir">
-                          <IconButton
-                            sx={styles.viewButton}
-                            onClick={() => handleViewClick(ens.id)}
-                            aria-label={`Voir les détails de ${ens.nom} ${ens.prenom}`}
-                          >
-                            <Visibility />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Supprimer">
-                          <IconButton
-                            sx={styles.deleteButton}
-                            onClick={() => setDeleteDialog({ open: true, id: ens.id })}
-                            aria-label={`Supprimer ${ens.nom} ${ens.prenom}`}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Zoom>
-      )}
-
-      {!loading && viewMode === "list" && (
-        <Zoom in={!loading}>
-          <Box sx={styles.listContainer(themeMode)}>
-            <List>
-              {paginatedEnseignants.map((ens) => (
-                <ListItem
-                  key={ens.id}
-                  sx={{
-                    borderBottom: "1px solid rgba(90, 61, 255, 0.15)",
-                    py: "12px",
-                    transition: "all 0.3s ease",
-                    "&:hover": {
-                      backgroundColor:
-                        themeMode === "dark"
-                          ? "rgba(90, 61, 255, 0.2)"
-                          : "rgba(90, 61, 255, 0.1)",
-                      transform: "translateY(-2px)",
-                    },
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar
-                      sx={styles.avatar}
-                      src={ens.photo}
-                      alt={`${ens.nom} ${ens.prenom}'s avatar`}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        sx={{
-                          fontFamily: "'Montserrat', sans-serif",
-                          fontWeight: 600,
-                          color: themeMode === "dark" ? "#fff" : "#333",
-                        }}
-                      >
-                        {ens.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography variant="caption" color="textSecondary">
-                        {ens.email} | Matière: {ens.matiere} | Date d'embauche: {ens.dateEmbauche}
-                      </Typography>
-                    }
-                  />
-                  <Box sx={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                    <IconButton
-                      sx={styles.viewButton}
-                      onClick={() => handleViewClick(ens.id)}
-                    >
-                      <Visibility />
-                    </IconButton>
-                    <IconButton
-                      sx={styles.deleteButton}
-                      onClick={() => setDeleteDialog({ open: true, id: ens.id })}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Box>
-                </ListItem>
               ))}
-            </List>
-          </Box>
-        </Zoom>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
-      <Pagination
-        sx={styles.pagination}
-        count={Math.ceil(filteredEnseignants.length / 5)}
-        page={page}
-        onChange={handleChangePage}
-        color="primary"
-        aria-label="Pagination des enseignants"
-      />
-
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-          Ajouter un Enseignant
+      {/* Add/Edit Dialog */}
+      <Dialog open={openDialog} onClose={() => {
+        setOpenDialog(false);
+        setSelectedEnseignant(null);
+        setFormData({
+          nom: '',
+          prenom: '',
+          dateNaissance: null,
+          matiere: '',
+          email: '',
+          password: ''
+        });
+      }}>
+        <DialogTitle>
+          {selectedEnseignant ? 'Modifier l\'enseignant' : 'Ajouter un enseignant'}
         </DialogTitle>
-        <DialogContent>
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Nom"
-                  name="nom"
-                  value={enseignant.nom}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.nom}
-                  helperText={errors.nom}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Prénom"
-                  name="prenom"
-                  value={enseignant.prenom}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.prenom}
-                  helperText={errors.prenom}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Matière"
-                  name="matiere"
-                  value={enseignant.matiere}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.matiere}
-                  helperText={errors.matiere}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Date d'embauche"
-                  name="dateEmbauche"
-                  type="date"
-                  value={enseignant.dateEmbauche}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  required
-                  error={!!errors.dateEmbauche}
-                  helperText={errors.dateEmbauche}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  value={enseignant.email}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.email}
-                  helperText={errors.email}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Mot de passe"
-                  name="password"
-                  type="password"
-                  value={enseignant.password}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.password}
-                  helperText={errors.password}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  type="file"
-                  name="photo"
-                  onChange={handlePhotoChange}
-                  InputLabelProps={{ shrink: true }}
-                  sx={styles.textFieldStyle(themeMode)}
-                />
-              </Grid>
-            </Grid>
-          </form>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setOpenDialog(false)}
-            sx={{ fontFamily: "'Montserrat', sans-serif", color: "#6a4bff" }}
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            sx={{
-              ...styles.addButton,
-              fontSize: "1rem",
-              padding: "10px 20px",
-            }}
-          >
-            Enregistrer
-          </Button>
-        </DialogActions>
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            <TextField
+              fullWidth
+              label="Nom"
+              name="nom"
+              value={formData.nom}
+              onChange={handleChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Prénom"
+              name="prenom"
+              value={formData.prenom}
+              onChange={handleChange}
+              margin="normal"
+              required
+            />
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+              <DatePicker
+                label="Date de naissance"
+                value={formData.dateNaissance}
+                onChange={handleDateChange}
+                renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+              />
+            </LocalizationProvider>
+            <TextField
+              fullWidth
+              label="Matière"
+              name="matiere"
+              value={formData.matiere}
+              onChange={handleChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              margin="normal"
+              required
+              disabled={selectedEnseignant} // Disable email field when editing
+            />
+            {!selectedEnseignant && (
+              <TextField
+                fullWidth
+                label="Mot de passe"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                margin="normal"
+                required
+              />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>Annuler</Button>
+            <Button type="submit" variant="contained" disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'Enregistrer'}
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
 
-      <Dialog
-        open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, id: null })}
-      >
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirmer la suppression</DialogTitle>
         <DialogContent>
-          <Typography>Êtes-vous sûr de vouloir supprimer cet enseignant ?</Typography>
+          Êtes-vous sûr de vouloir supprimer cet enseignant ?
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, id: null })}>
-            Annuler
-          </Button>
-          <Button
-            onClick={() => handleDelete(deleteDialog.id)}
-            color="error"
-          >
+          <Button onClick={() => setOpenDeleteDialog(false)}>Annuler</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
             Supprimer
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
-};
+}
 
-export default GererEnseignantPage;
+export default GererEnseignant;
