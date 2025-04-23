@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,7 +9,6 @@ import {
   TextField,
   Button,
   CircularProgress,
-  Divider,
   IconButton,
   Paper,
   Grid,
@@ -18,363 +17,370 @@ import {
   Tab,
   Tabs,
   Backdrop,
-  Card,
-  CardContent,
-  Switch,
-  styled as muiStyled,
+  MenuItem,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import LockIcon from "@mui/icons-material/Lock";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import EmailIcon from "@mui/icons-material/Email";
 import SaveIcon from "@mui/icons-material/Save";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import PersonIcon from "@mui/icons-material/Person";
 import SecurityIcon from "@mui/icons-material/Security";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import PhoneIcon from "@mui/icons-material/Phone";
+import SchoolIcon from '@mui/icons-material/School';
+import SubjectIcon from '@mui/icons-material/Subject';
+import WorkIcon from '@mui/icons-material/Work';
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import ShieldIcon from "@mui/icons-material/Shield";
 
-// Palette de couleurs
-const colors = {
-  primary: { main: "#3B82F6", light: "#60A5FA", dark: "#2563EB", contrastText: "#FFFFFF" },
-  secondary: { main: "#10B981", light: "#34D399", dark: "#059669", contrastText: "#FFFFFF" },
-  accent: { main: "#8B5CF6", light: "#A78BFA", dark: "#7C3AED", contrastText: "#FFFFFF" },
-  background: {
-    default: "#F9FAFB",
-    paper: "#FFFFFF",
-    dark: "#1F2937",
-    card: "#F3F4F6",
-    gradient: "linear-gradient(145deg, #EFF6FF 0%, #DBEAFE 100%)",
-  },
-  text: { primary: "#1F2937", secondary: "#4B5563", light: "#6B7280", white: "#FFFFFF" },
-  border: "#E5E7EB",
-  success: "#10B981",
-  error: "#EF4444",
-  warning: "#F59E0B",
-};
+// Tunisian cities array from Eleve model
+const tunisianCities = [
+  'Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 
+  'Gabès', 'Ariana', 'Gafsa', 'Monastir', 'Ben Arous',
+  'Kasserine', 'Médenine', 'Nabeul', 'Tataouine', 'Béja',
+  'Kef', 'Mahdia', 'Sidi Bouzid', 'Jendouba', 'Tozeur',
+  'Manouba', 'Siliana', 'Zaghouan', 'Kebili'
+];
 
-// Styles corrigés avec les dimensions du deuxième code
-const PageContainer = styled(Container)(({ theme, isSidenavOpen }) => ({
-  paddingTop: theme.spacing(4),
-  paddingBottom: theme.spacing(4),
-  marginLeft: isSidenavOpen ? "235px" : "206px", // Augmentation : 215px -> 235px avec sidenav, 0 -> 20px sans sidenav
-  width: isSidenavOpen ? "calc(100% - 230px)" : "calc(100% - 40px)", // Ajustement largeur pour cohérence
-  transition: "all 0.3s ease",
+const PageContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(6), // Slightly more vertical padding
+  paddingBottom: theme.spacing(6),
+  minHeight: "calc(100vh - 64px)", // Adjust if header height differs
+  width: "calc(100% - 240px)", // Adjust if sidebar width differs
+  maxWidth: "none !important",
+  marginLeft: "240px",
+  paddingLeft: theme.spacing(6), // More horizontal padding
+  paddingRight: theme.spacing(6),
   display: "flex",
   flexDirection: "column",
-  minHeight: "calc(100vh - 64px)",
-  background: colors.background.default,
-  [theme.breakpoints.down("sm")]: {
+  backgroundColor: '#f8f9fa', // Slightly adjusted neutral background
+  '@media (max-width: 1200px)': { // Adjust breakpoint for sidebar collapse if needed
+    width: '100%',
     marginLeft: 0,
-    width: "100%",
-    padding: theme.spacing(2),
+    padding: theme.spacing(4),
   },
-}));
-
-const ProfileBanner = styled(Box)(({ theme }) => ({
-  height: "180px",
-  borderRadius: "24px 24px 0 0",
-  background: `linear-gradient(135deg, ${colors.primary.main}, ${colors.accent.main})`,
-  position: "relative",
-  overflow: "hidden",
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    width: "100%",
-    height: "50%",
-    background: "linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 100%)",
-  },
-}));
-
-const ProfileAvatar = styled(Avatar)(({ theme }) => ({
-  width: 150,
-  height: 150,
-  border: `5px solid ${colors.background.paper}`,
-  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.15)",
-  position: "absolute",
-  bottom: "-20px", // Changé de -75px à -50px pour remonter de 25px
-  left: "50px",
-  zIndex: 10,
-  transition: "transform 0.3s ease",
-  "&:hover": { transform: "scale(1.05)" },
-  [theme.breakpoints.down("sm")]: {
-    width: 100,
-    height: 100,
-    bottom: "-25px", // Ajusté de -50px à -25px sur mobile pour cohérence
-    left: "20px",
-  },
+  '@media (max-width: 600px)': {
+    padding: theme.spacing(3),
+  }
 }));
 
 const ProfileCard = styled(Paper)(({ theme }) => ({
-  borderRadius: "24px",
-  overflow: "visible",
-  background: "transparent",
-  boxShadow: "none",
-  marginBottom: theme.spacing(4),
+  padding: 0,
+  borderRadius: theme.shape.borderRadius * 4, // Slightly more rounded corners
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)', // Even softer initial shadow
+  overflow: 'hidden',
+  background: '#ffffff',
+  margin: 0,
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'box-shadow 0.3s ease-in-out',
+  '&:hover': {
+     boxShadow: '0 6px 18px rgba(0, 0, 0, 0.06)', // Refined hover shadow
+  }
 }));
 
-const ProfileBody = styled(Paper)(({ theme }) => ({
-  borderRadius: "0 0 24px 24px",
-  backgroundColor: colors.background.paper,
-  paddingTop: theme.spacing(8),
-  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.05)",
+const ProfileHeader = styled(Box)(({ theme }) => ({
+  background: '#ffffff',
+  padding: theme.spacing(4, 5), // Keep padding consistent
+  color: theme.palette.text.primary,
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(4), // Slightly increased gap
+  borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
-const InfoHeader = styled(Box)(({ theme }) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  padding: theme.spacing(0, 6, 2, 6),
-  marginTop: theme.spacing(2),
-  [theme.breakpoints.down("md")]: {
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    padding: theme.spacing(0, 2, 2, 2),
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  width: 90, // Slightly smaller for a sleeker look
+  height: 90,
+  border: `4px solid ${theme.palette.background.paper}`, // Slightly thicker border
+  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)', // Adjusted shadow
+  transition: 'all 0.3s ease',
+  // Use a solid, professional color or a very subtle gradient if preferred
+  background: theme.palette.primary.main,
+  // background: `linear-gradient(145deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`, // Optional subtle gradient
+  fontSize: '2.2rem', // Adjusted font size
+  zIndex: 1,
+  '&:hover': {
+    transform: 'scale(1.04)', // Slightly adjusted hover scale
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+  }
+}));
+
+const StyledTabs = styled(Tabs)(({ theme }) => ({
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  background: '#fcfdff', // Slightly adjusted tab background
+  minHeight: 64, // Increased height for better spacing
+  '& .MuiTab-root': {
+    minHeight: 64,
+    fontSize: '1rem',
+    fontWeight: 500,
+    textTransform: 'none',
+    color: theme.palette.text.secondary,
+    padding: theme.spacing(0, 4), // Increased horizontal padding
+    transition: 'color 0.2s ease, background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover, // Use theme hover color
+      color: theme.palette.primary.main,
+    },
+    '&.Mui-selected': {
+      color: theme.palette.primary.main,
+      fontWeight: 600,
+      backgroundColor: '#ffffff',
+    },
+    // Add icon styling directly here if needed
+    '& .MuiTab-iconWrapper': {
+        marginRight: theme.spacing(1), // Ensure space between icon and label
+    }
   },
+  '& .MuiTabs-indicator': {
+    height: 2, // Standard indicator height
+    backgroundColor: theme.palette.primary.main,
+    borderTopLeftRadius: 0, // Remove radius for cleaner look
+    borderTopRightRadius: 0,
+  }
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: theme.shape.borderRadius * 2, // Consistent radius
+    transition: 'all 0.25s ease-in-out',
+    backgroundColor: theme.palette.grey[50],
+    '& fieldset': {
+      borderColor: theme.palette.grey[300],
+      transition: 'border-color 0.25s ease-in-out', // Add transition to border
+    },
+    '&:hover': {
+      backgroundColor: theme.palette.grey[100],
+      '& fieldset': {
+        borderColor: theme.palette.grey[400],
+      }
+    },
+    '&.Mui-focused': {
+      backgroundColor: '#ffffff',
+      boxShadow: `0 0 0 2px ${theme.palette.primary.main}33`,
+      '& fieldset': {
+        borderColor: theme.palette.primary.main,
+        borderWidth: '1px', // Ensure border width doesn't change on focus
+      }
+    },
+    // Style for adornments
+    '& .MuiInputAdornment-root .MuiSvgIcon-root': {
+        color: theme.palette.text.secondary, // Consistent icon color
+        fontSize: '1.25rem', // Standard icon size
+    }
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: '1rem',
+    fontWeight: 400,
+    color: theme.palette.text.secondary,
+    '&.Mui-focused': {
+      color: theme.palette.primary.main,
+    }
+  },
+  // Adjust helper text style
+  '& .MuiFormHelperText-root': {
+      fontSize: '0.8rem',
+      marginLeft: theme.spacing(0.5) // Slight indent
+  }
+}));
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  padding: theme.spacing(1.25, 4), // Fine-tuned padding
+  borderRadius: theme.shape.borderRadius * 2,
+  textTransform: 'none',
+  fontSize: '1rem',
+  fontWeight: 600,
+  background: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  boxShadow: `0 3px 8px ${theme.palette.primary.main}40`, // Adjusted shadow
+  transition: 'all 0.25s ease',
+  '&:hover': {
+    background: theme.palette.primary.dark,
+    transform: 'translateY(-1px)', // More subtle hover lift
+    boxShadow: `0 5px 14px ${theme.palette.primary.main}59`, // Adjusted hover shadow
+  },
+  '&:active': {
+    transform: 'translateY(0px)',
+    boxShadow: `0 2px 6px ${theme.palette.primary.main}33`, // Active shadow
+  },
+  '&.Mui-disabled': {
+      background: theme.palette.action.disabledBackground,
+      boxShadow: 'none',
+      color: theme.palette.action.disabled,
+  }
 }));
 
 const TabPanel = ({ children, value, index }) => (
-  <div
-    role="tabpanel"
-    hidden={value !== index}
-    id={`profile-tabpanel-${index}`}
-    aria-labelledby={`profile-tab-${index}`}
-  >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+  <div role="tabpanel" hidden={value !== index}>
+    {value === index && (
+      <Box sx={{
+        p: 5,
+        animation: 'fadeIn 0.4s ease-out',
+        '@keyframes fadeIn': {
+          '0%': { opacity: 0, transform: 'translateY(8px)' }, // Slightly adjusted animation
+          '100%': { opacity: 1, transform: 'translateY(0)' }
+        },
+        backgroundColor: '#ffffff'
+      }}>
+        {children}
+      </Box>
+    )}
   </div>
 );
 
-const FormSection = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3, 0),
-}));
 
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  fontWeight: 600,
-  marginBottom: theme.spacing(3),
-  color: colors.text.primary,
-}));
-
-const FieldLabel = styled(Typography)(({ theme }) => ({
-  fontWeight: 600,
-  color: colors.text.secondary,
-  marginBottom: theme.spacing(0.5),
-  fontSize: "0.9rem",
-}));
-
-const StyledTextField = muiStyled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "12px",
-    transition: "all 0.2s ease",
-    backgroundColor: colors.background.card,
-    "& fieldset": { borderColor: "transparent" },
-    "&:hover fieldset": { borderColor: colors.primary.light },
-    "&.Mui-focused fieldset": { borderColor: colors.primary.main, borderWidth: "1px" },
-    "&.Mui-error fieldset": { borderColor: colors.error },
-  },
-  "& .MuiInputBase-input": { padding: "14px 16px" },
-}));
-
-const PasswordField = styled(Box)(({ theme }) => ({
-  position: "relative",
-  width: "100%",
-  "& .MuiIconButton-root": {
-    position: "absolute",
-    right: theme.spacing(1),
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: colors.text.light,
-  },
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  borderRadius: "12px",
-  textTransform: "none",
-  padding: theme.spacing(1.5, 3),
-  fontWeight: 600,
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-  transition: "all 0.3s ease",
-  "&:hover": { boxShadow: "0 6px 16px rgba(0, 0, 0, 0.15)", transform: "translateY(-2px)" },
-  "&:active": { transform: "translateY(0)" },
-  "&:disabled": { opacity: 0.7 },
-}));
-
-const ChangePhotoButton = styled(IconButton)(({ theme }) => ({
-  position: "absolute",
-  bottom: "5px",
-  right: "5px",
-  backgroundColor: colors.background.paper,
-  color: colors.primary.main,
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-  "&:hover": { backgroundColor: colors.primary.light, color: colors.background.paper },
-}));
-
-const InfoCard = styled(Card)(({ theme }) => ({
-  borderRadius: "16px",
-  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-  height: "100%",
-  "&:hover": { transform: "translateY(-5px)", boxShadow: "0 12px 20px rgba(0, 0, 0, 0.1)" },
-}));
-
-// Composant principal
-const Profile = ({ isSidenavOpen = false }) => {
+const Profile = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
-    name: "",
+    // Common fields from User model
     email: "",
-    profileImage: "https://i.pravatar.cc/300?img=3",
+    role: "",
+    // Security fields
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    phone: "",
-    location: "",
-    role: "",
-    twoFactorEnabled: false,
+    // Role-specific fields based on schemas
+    nom: "",
+    prenom: "",
+    dateNaissance: "",
+    classe: "",     // for Eleve
+    ville: "",      // for Eleve
+    matiere: "",    // for Enseignant
+    fonction: "",   // for Admin
   });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
   const [errors, setErrors] = useState({});
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: [0.2, 0.65, 0.3, 0.9] } },
-  };
-
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Vous devez être connecté.");
+    fetchProfile();
+  }, []);
 
-        const response = await fetch("http://localhost:5000/api/auth/profile", {
-          method: "GET",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Erreur réseau.");
-        }
-
-        const result = await response.json();
-        setUserInfo({
-          name: result.name || "Utilisateur",
-          email: result.email || "",
-          profileImage: result.profileImage || "https://i.pravatar.cc/300?img=3",
-          phone: result.phone || "",
-          location: result.location || "",
-          role: result.role || "",
-          twoFactorEnabled: result.twoFactorEnabled || false,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        setLastUpdate(
-          result.lastUpdate
-            ? new Date(result.lastUpdate).toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })
-            : null
-        );
-      } catch (error) {
-        toast.error(error.message);
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
         navigate("/login");
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchUserProfile();
-  }, [navigate]);
+      const response = await fetch("http://localhost:5000/api/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  const validateForm = useCallback(() => {
-    const newErrors = {};
-    if (userInfo.newPassword) {
-      if (!userInfo.currentPassword) newErrors.currentPassword = "Mot de passe actuel requis.";
-      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(userInfo.newPassword))
-        newErrors.newPassword = "8 caractères min., 1 majuscule, 1 chiffre.";
-      if (userInfo.newPassword !== userInfo.confirmPassword)
-        newErrors.confirmPassword = "Les mots de passe ne correspondent pas.";
+      if (!response.ok) throw new Error("Échec de la récupération du profil");
+
+      const data = await response.json();
+      if (data.success) {
+        const { user, profile } = data.data;
+        setUserInfo(prev => ({
+          ...prev,
+          email: user.email,
+          role: user.role,
+          nom: profile?.nom || "",
+          prenom: profile?.prenom || "",
+          dateNaissance: profile?.dateNaissance ? new Date(profile.dateNaissance).toISOString().split('T')[0] : "",
+          classe: profile?.classe || "",
+          ville: profile?.ville || "",
+          matiere: profile?.matiere || "",
+          fonction: profile?.fonction || "",
+        }));
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
-    if (!userInfo.name) newErrors.name = "Le nom est requis.";
-    if (!userInfo.email || !/\S+@\S+\.\S+/.test(userInfo.email)) newErrors.email = "Email invalide.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [userInfo]);
-
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setUserInfo((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: null }));
-  }, []);
-
-  const handleTwoFactorChange = useCallback((e) => {
-    setUserInfo((prev) => ({ ...prev, twoFactorEnabled: e.target.checked }));
-  }, []);
-
-  const handleImageUpload = useCallback((e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 1024 * 1024) {
-      toast.error("L'image ne doit pas dépasser 1 Mo.");
-      return;
-    }
-    setUploadingPhoto(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setUserInfo((prev) => ({ ...prev, profileImage: reader.result }));
-      setUploadingPhoto(false);
-      toast.success("Photo mise à jour.");
-    };
-    reader.readAsDataURL(file);
-  }, []);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setSaving(true);
     try {
+      setSaving(true);
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("Vous devez être connecté.");
+      
+      // Validate required fields based on role
+      const requiredFields = {
+        eleve: ['nom', 'prenom', 'email', 'ville'],
+        enseignant: ['nom', 'prenom', 'email', 'matiere'],
+        admin: ['nom', 'prenom', 'email', 'fonction']
+      };
 
-      const response = await fetch("http://localhost:5000/api/auth/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(userInfo),
-      });
+      const missingFields = requiredFields[userInfo.role]?.filter(
+        field => !userInfo[field]
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la mise à jour.");
+      if (missingFields?.length) {
+        toast.error(`Veuillez remplir tous les champs obligatoires: ${missingFields.join(', ')}`);
+        return;
       }
 
-      const now = new Date();
-      setLastUpdate(now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }));
-      setUserInfo((prev) => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
-      toast.success("Profil mis à jour avec succès.");
+      // Password validation
+      if (userInfo.newPassword) {
+        if (!userInfo.currentPassword) {
+          toast.error("Le mot de passe actuel est requis pour changer le mot de passe");
+          return;
+        }
+        if (userInfo.newPassword !== userInfo.confirmPassword) {
+          toast.error("Les nouveaux mots de passe ne correspondent pas");
+          return;
+        }
+      }
+
+      const updateData = {
+        email: userInfo.email,
+        nom: userInfo.nom,
+        prenom: userInfo.prenom,
+        dateNaissance: userInfo.dateNaissance,
+        currentPassword: userInfo.currentPassword,
+        newPassword: userInfo.newPassword,
+      };
+
+      // Add role-specific data
+      switch (userInfo.role) {
+        case 'eleve':
+          updateData.classe = userInfo.classe;
+          updateData.ville = userInfo.ville;
+          break;
+        case 'enseignant':
+          updateData.matiere = userInfo.matiere;
+          break;
+        case 'admin':
+          updateData.fonction = userInfo.fonction;
+          break;
+      }
+
+      const response = await fetch("http://localhost:5000/api/profile/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Profil mis à jour avec succès");
+        // Reset password fields
+        setUserInfo(prev => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      } else {
+        throw new Error(data.message || "Erreur lors de la mise à jour");
+      }
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -382,366 +388,345 @@ const Profile = ({ isSidenavOpen = false }) => {
     }
   };
 
-  const handleTabChange = useCallback((e, newValue) => setTabValue(newValue), []);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUserInfo(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
 
   if (loading) {
     return (
-      <Backdrop sx={{ color: "#fff", zIndex: 9999, background: colors.background.gradient }} open>
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-        >
-          <CircularProgress sx={{ color: colors.primary.main }} size={70} thickness={4} />
-        </motion.div>
+      <Backdrop open={true}>
+        <CircularProgress />
       </Backdrop>
     );
   }
 
+  // Update the return statement to use new styled components
   return (
-    <PageContainer isSidenavOpen={isSidenavOpen}>
-      <motion.div initial="hidden" animate="visible" variants={containerVariants}>
+    <PageContainer>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
         <ProfileCard>
-          <motion.div variants={itemVariants}>
-            <ProfileBanner>
-              <input
-                accept="image/*"
-                id="profile-image-upload"
-                type="file"
-                hidden
-                onChange={handleImageUpload}
-              />
-              <ProfileAvatar src={userInfo.profileImage} alt={userInfo.name}>
-                {uploadingPhoto && (
-                  <CircularProgress
-                    size={30}
-                    sx={{ position: "absolute", top: "50%", left: "50%", mt: "-15px", ml: "-15px" }}
-                  />
-                )}
-              </ProfileAvatar>
-              <label htmlFor="profile-image-upload">
-                <ChangePhotoButton aria-label="Changer la photo">
-                  <CameraAltIcon />
-                </ChangePhotoButton>
-              </label>
-            </ProfileBanner>
-          </motion.div>
-
-          <ProfileBody>
-            <InfoHeader>
-              <Box>
-                <motion.div variants={itemVariants}>
-                  <Typography variant="h4" fontWeight="700" color={colors.text.primary}>
-                    {userInfo.name}
-                  </Typography>
-                </motion.div>
-                <motion.div variants={itemVariants}>
-                  <Typography variant="body1" color={colors.text.secondary} display="flex" alignItems="center" gap={1}>
-                    <EmailIcon fontSize="small" sx={{ color: colors.primary.main }} />
+          <ProfileHeader>
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <StyledAvatar>
+                {userInfo.prenom?.[0]?.toUpperCase() || ''}
+              </StyledAvatar>
+              <Box sx={{ ml: 3, flex: 1 }}>
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    fontWeight: 600,
+                    mb: 0.5
+                  }}
+                >
+                  {`${userInfo.prenom} ${userInfo.nom}`}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      color: 'text.secondary',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
+                  >
+                    <EmailIcon sx={{ fontSize: 18 }} />
                     {userInfo.email}
                   </Typography>
-                </motion.div>
-                <motion.div variants={itemVariants}>
-                  <Box display="flex" alignItems="center" gap={1} mt={1}>
-                    <Chip
-                      label={userInfo.role || "Non défini"}
-                      size="small"
-                      sx={{ bgcolor: `${colors.primary.main}15`, color: colors.primary.main, fontWeight: 600 }}
-                    />
-                    <Chip
-                      icon={<CheckCircleIcon sx={{ fontSize: "16px !important" }} />}
-                      label="Compte vérifié"
-                      size="small"
-                      sx={{ bgcolor: `${colors.secondary.main}15`, color: colors.secondary.main, fontWeight: 600 }}
-                    />
-                  </Box>
-                </motion.div>
-              </Box>
-              <motion.div variants={itemVariants}>
-                <Box textAlign="right">
-                  {lastUpdate && (
-                    <Typography variant="body2" color={colors.text.light}>
-                      Dernière mise à jour: <b>{lastUpdate}</b>
-                    </Typography>
-                  )}
-                  <StyledButton
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    sx={{ mt: 1, background: colors.primary.main, color: colors.text.white }}
-                  >
-                    {saving ? <CircularProgress size={24} sx={{ color: "white" }} /> : "Sauvegarder"}
-                  </StyledButton>
+                  <Chip
+                    label={userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1)}
+                    size="small"
+                    sx={{
+                      backgroundColor: 'primary.main',
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      }
+                    }}
+                  />
                 </Box>
-              </motion.div>
-            </InfoHeader>
-
-            <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}>
-              <Tabs
-                value={tabValue}
-                onChange={handleTabChange}
-                variant="scrollable"
-                scrollButtons="auto"
-                aria-label="Onglets du profil"
-                sx={{
-                  "& .MuiTab-root": {
-                    textTransform: "none",
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    minHeight: "60px",
-                    color: colors.text.secondary,
-                    "&.Mui-selected": { color: colors.primary.main },
-                  },
-                  "& .MuiTabs-indicator": { backgroundColor: colors.primary.main, height: "3px" },
-                }}
-              >
-                <Tab label="Informations" icon={<PersonIcon />} iconPosition="start" />
-                <Tab label="Sécurité" icon={<SecurityIcon />} iconPosition="start" />
-              </Tabs>
+              </Box>
             </Box>
+          </ProfileHeader>
 
-            <form onSubmit={handleSubmit}>
-              <TabPanel value={tabValue} index={0}>
-                <FormSection>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
-                      <motion.div variants={itemVariants}>
-                        <SectionTitle variant="h6">
-                          <PersonIcon sx={{ color: colors.primary.main }} fontSize="small" />
-                          Informations de base
-                        </SectionTitle>
-                        <Grid container spacing={3}>
-                          <Grid item xs={12}>
-                            <FieldLabel>Nom complet</FieldLabel>
-                            <StyledTextField
-                              fullWidth
-                              name="name"
-                              value={userInfo.name}
-                              onChange={handleChange}
-                              error={!!errors.name}
-                              helperText={errors.name}
-                              required
-                              variant="outlined"
-                              placeholder="Votre nom"
-                              InputProps={{ startAdornment: <PersonIcon sx={{ color: colors.text.light, mr: 1 }} /> }}
-                            />
-                          </Grid>
-                          <Grid item xs={12}>
-                            <FieldLabel>Adresse e-mail</FieldLabel>
-                            <StyledTextField
-                              fullWidth
-                              name="email"
-                              type="email"
-                              value={userInfo.email}
-                              onChange={handleChange}
-                              error={!!errors.email}
-                              helperText={errors.email}
-                              required
-                              variant="outlined"
-                              placeholder="votre.email@exemple.com"
-                              InputProps={{ startAdornment: <EmailIcon sx={{ color: colors.text.light, mr: 1 }} /> }}
-                            />
-                          </Grid>
-                          <Grid item xs={12}>
-                            <FieldLabel>Téléphone</FieldLabel>
-                            <StyledTextField
-                              fullWidth
-                              name="phone"
-                              value={userInfo.phone}
-                              onChange={handleChange}
-                              variant="outlined"
-                              placeholder="Votre numéro"
-                              InputProps={{ startAdornment: <PhoneIcon sx={{ color: colors.text.light, mr: 1 }} /> }}
-                            />
-                          </Grid>
-                        </Grid>
-                      </motion.div>
+          <StyledTabs
+            value={tabValue}
+            onChange={(e, newValue) => setTabValue(newValue)}
+          >
+            <Tab 
+              icon={<PersonIcon />} 
+              label="Informations Personnelles"
+              sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}
+            />
+            <Tab 
+              icon={<SecurityIcon />} 
+              label="Sécurité"
+              sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}
+            />
+          </StyledTabs>
+
+          <form onSubmit={handleSubmit}>
+            <TabPanel value={tabValue} index={0}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Email"
+                    name="email"
+                    value={userInfo.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                    InputProps={{
+                      startAdornment: <EmailIcon sx={{ mr: 1 }} />,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Nom"
+                    name="nom"
+                    value={userInfo.nom}
+                    onChange={handleChange}
+                    error={!!errors.nom}
+                    helperText={errors.nom}
+                    InputProps={{
+                      startAdornment: <PersonIcon sx={{ mr: 1 }} />,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Prénom"
+                    name="prenom"
+                    value={userInfo.prenom}
+                    onChange={handleChange}
+                    error={!!errors.prenom}
+                    helperText={errors.prenom}
+                    InputProps={{
+                      startAdornment: <PersonIcon sx={{ mr: 1 }} />,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Date de naissance"
+                    name="dateNaissance"
+                    value={userInfo.dateNaissance}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+
+                {/* Role-specific fields */}
+                {userInfo.role === 'eleve' && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        required
+                        fullWidth
+                        label="Classe"
+                        name="classe"
+                        value={userInfo.classe}
+                        onChange={handleChange}
+                        error={!!errors.classe}
+                        helperText={errors.classe}
+                        InputProps={{
+                          startAdornment: <SchoolIcon sx={{ mr: 1 }} />,
+                        }}
+                      />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                      <motion.div variants={itemVariants}>
-                        <SectionTitle variant="h6">
-                          <AccountCircleIcon sx={{ color: colors.primary.main }} fontSize="small" />
-                          Informations professionnelles
-                        </SectionTitle>
-                        <Grid container spacing={3}>
-                          <Grid item xs={12}>
-                            <FieldLabel>Poste</FieldLabel>
-                            <StyledTextField
-                              fullWidth
-                              name="role"
-                              value={userInfo.role}
-                              onChange={handleChange}
-                              variant="outlined"
-                              placeholder="Votre poste"
-                            />
-                          </Grid>
-                          <Grid item xs={12}>
-                            <FieldLabel>Localisation</FieldLabel>
-                            <StyledTextField
-                              fullWidth
-                              name="location"
-                              value={userInfo.location}
-                              onChange={handleChange}
-                              variant="outlined"
-                              placeholder="Ville, Pays"
-                              InputProps={{
-                                startAdornment: <LocationOnIcon sx={{ color: colors.text.light, mr: 1 }} />,
-                              }}
-                            />
-                          </Grid>
-                          <Grid item xs={12}>
-                            <InfoCard>
-                              <CardContent>
-                                <Typography variant="subtitle2" color={colors.text.secondary} fontWeight={600}>
-                                  Statut du compte
-                                </Typography>
-                                <Divider sx={{ my: 1.5 }} />
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <ShieldIcon color="success" />
-                                    <Typography variant="body2">Compte actif et vérifié</Typography>
-                                  </Box>
-                                  <Chip
-                                    label="Actif"
-                                    size="small"
-                                    sx={{ bgcolor: colors.success, color: "white", fontWeight: 600 }}
-                                  />
-                                </Box>
-                              </CardContent>
-                            </InfoCard>
-                          </Grid>
-                        </Grid>
-                      </motion.div>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        required
+                        select
+                        fullWidth
+                        label="Ville"
+                        name="ville"
+                        value={userInfo.ville}
+                        onChange={handleChange}
+                        error={!!errors.ville}
+                        helperText={errors.ville}
+                        SelectProps={{ // Use SelectProps for select-specific styling if needed
+                            MenuProps: {
+                                PaperProps: {
+                                    sx: {
+                                        maxHeight: 250, // Limit dropdown height
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Consistent shadow
+                                        borderRadius: theme => theme.shape.borderRadius * 1.5,
+                                    }
+                                }
+                            }
+                        }}
+                        InputProps={{ // Keep InputProps for the adornment
+                          startAdornment: <LocationOnIcon sx={{ mr: 1 }} />,
+                        }}
+                      >
+                        {tunisianCities.map((city) => (
+                          <MenuItem key={city} value={city}>
+                            {city}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
+                  </>
+                )}
+
+                {userInfo.role === 'enseignant' && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      required
+                      fullWidth
+                      label="Matière enseignée"
+                      name="matiere"
+                      value={userInfo.matiere}
+                      onChange={handleChange}
+                      error={!!errors.matiere}
+                      helperText={errors.matiere}
+                      InputProps={{
+                        startAdornment: <SubjectIcon sx={{ mr: 1 }} />,
+                      }}
+                    />
                   </Grid>
-                </FormSection>
-              </TabPanel>
+                )}
 
-              <TabPanel value={tabValue} index={1}>
-                <FormSection>
-                  <motion.div variants={itemVariants}>
-                    <SectionTitle variant="h6">
-                      <LockIcon sx={{ color: colors.primary.main }} fontSize="small" />
-                      Changer votre mot de passe
-                    </SectionTitle>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={4}>
-                        <FieldLabel>Mot de passe actuel</FieldLabel>
-                        <PasswordField>
-                          <StyledTextField
-                            fullWidth
-                            name="currentPassword"
-                            type={showCurrentPassword ? "text" : "password"}
-                            value={userInfo.currentPassword}
-                            onChange={handleChange}
-                            error={!!errors.currentPassword}
-                            helperText={errors.currentPassword}
-                            variant="outlined"
-                            placeholder="●●●●●●●●"
-                          />
-                          <IconButton
-                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            aria-label="Afficher/Masquer mot de passe actuel"
-                          >
-                            {showCurrentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </PasswordField>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <FieldLabel>Nouveau mot de passe</FieldLabel>
-                        <PasswordField>
-                          <StyledTextField
-                            fullWidth
-                            name="newPassword"
-                            type={showNewPassword ? "text" : "password"}
-                            value={userInfo.newPassword}
-                            onChange={handleChange}
-                            error={!!errors.newPassword}
-                            helperText={errors.newPassword || "8 caractères min., 1 majuscule, 1 chiffre"}
-                            variant="outlined"
-                            placeholder="●●●●●●●●"
-                          />
-                          <IconButton
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            aria-label="Afficher/Masquer nouveau mot de passe"
-                          >
-                            {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </PasswordField>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <FieldLabel>Confirmer le mot de passe</FieldLabel>
-                        <PasswordField>
-                          <StyledTextField
-                            fullWidth
-                            name="confirmPassword" 
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={userInfo.confirmPassword}
-                            onChange={handleChange}
-                            error={!!errors.confirmPassword}
-                            helperText={errors.confirmPassword}
-                            variant="outlined"
-                            placeholder="●●●●●●●●"
-                          />
-                          <IconButton
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            aria-label="Afficher/Masquer confirmation mot de passe"
-                          >
-                            {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </PasswordField>
-                      </Grid>
-                    </Grid>
-                  </motion.div>
-                  <motion.div variants={itemVariants}>
-                    <Box mt={4}>
-                      <SectionTitle variant="h6">
-                        <SecurityIcon sx={{ color: colors.primary.main }} fontSize="small" />
-                        Sécurité du compte
-                      </SectionTitle>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                          <InfoCard>
-                            <CardContent>
-                              <Typography variant="subtitle2" color={colors.text.secondary} fontWeight={600}>
-                                Dernière connexion
-                              </Typography>
-                              <Divider sx={{ my: 1.5 }} />
-                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <Typography variant="body2">4 avril 2025, 09:45</Typography>
-                                <Typography variant="body2" color={colors.text.light}>
-                                  IP: 197.21.XX.XX
-                                </Typography>
-                              </Box>
-                            </CardContent>
-                          </InfoCard>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <InfoCard>
-                            <CardContent>
-                              <Typography variant="subtitle2" color={colors.text.secondary} fontWeight={600}>
-                                Authentification à deux facteurs
-                              </Typography>
-                              <Divider sx={{ my: 1.5 }} />
-                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <Typography variant="body2">Activer 2FA</Typography>
-                                <Switch
-                                  checked={userInfo.twoFactorEnabled}
-                                  onChange={handleTwoFactorChange}
-                                  color="primary"
-                                  inputProps={{ "aria-label": "Activer/Désactiver 2FA" }}
-                                />
-                              </Box>
-                            </CardContent>
-                          </InfoCard>
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  </motion.div>
-                </FormSection>
-              </TabPanel>
-            </form>
-          </ProfileBody>
+                {userInfo.role === 'admin' && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      required
+                      fullWidth
+                      label="Fonction"
+                      name="fonction"
+                      value={userInfo.fonction}
+                      onChange={handleChange}
+                      error={!!errors.fonction}
+                      helperText={errors.fonction}
+                      InputProps={{
+                        startAdornment: <WorkIcon sx={{ mr: 1 }} />,
+                      }}
+                    />
+                  </Grid>
+                )}
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type={showCurrentPassword ? "text" : "password"}
+                    label="Mot de passe actuel"
+                    name="currentPassword"
+                    value={userInfo.currentPassword}
+                    onChange={handleChange}
+                    error={!!errors.currentPassword}
+                    helperText={errors.currentPassword}
+                    InputProps={{
+                      startAdornment: <LockIcon sx={{ mr: 1 }} />,
+                      endAdornment: (
+                        <IconButton
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          {showCurrentPassword ? (
+                            <VisibilityOffIcon />
+                          ) : (
+                            <VisibilityIcon />
+                          )}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type={showNewPassword ? "text" : "password"}
+                    label="Nouveau mot de passe"
+                    name="newPassword"
+                    value={userInfo.newPassword}
+                    onChange={handleChange}
+                    error={!!errors.newPassword}
+                    helperText={errors.newPassword}
+                    InputProps={{
+                      startAdornment: <LockIcon sx={{ mr: 1 }} />,
+                      endAdornment: (
+                        <IconButton
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? (
+                            <VisibilityOffIcon />
+                          ) : (
+                            <VisibilityIcon />
+                          )}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type={showConfirmPassword ? "text" : "password"}
+                    label="Confirmer le nouveau mot de passe"
+                    name="confirmPassword"
+                    value={userInfo.confirmPassword}
+                    onChange={handleChange}
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword}
+                    InputProps={{
+                      startAdornment: <LockIcon sx={{ mr: 1 }} />,
+                      endAdornment: (
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <VisibilityOffIcon />
+                          ) : (
+                            <VisibilityIcon />
+                          )}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={saving}
+                startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+              >
+                {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+              </Button>
+            </Box>
+          </form>
         </ProfileCard>
       </motion.div>
     </PageContainer>
